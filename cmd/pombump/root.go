@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/2000Slash/gopom"
 	"github.com/spf13/cobra"
 	"github.com/vaikas/pombump/pkg"
-	"github.com/vifraa/gopom"
 	"sigs.k8s.io/release-utils/version"
 )
 
@@ -37,13 +37,15 @@ var rootCmd = &cobra.Command{
 			if dep == "" {
 				continue
 			}
-			fmt.Printf("CHECKING: %s\n", dep)
 			parts := strings.Split(dep, "@")
-			fmt.Printf("PARTS: %v %d\n", parts, len(parts))
-			if len(parts) != 3 {
+			if len(parts) < 3 {
 				return fmt.Errorf("invalid dependencies format (%s). Each dependency should be in the format <groupID@artifactID@version>. Usage: pombump --dependencies=\"<groupID@artifactID@version> <groupID@artifactID@version> ...\"", dep)
 			}
-			patches = append(patches, pkg.Patch{GroupID: parts[0], ArtifactID: parts[1], Version: parts[2]})
+			scope := "import"
+			if len(parts) == 4 {
+				scope = parts[3]
+			}
+			patches = append(patches, pkg.Patch{GroupID: parts[0], ArtifactID: parts[1], Version: parts[2], Scope: scope})
 		}
 
 		propertiesPatches := map[string]string{}
@@ -51,10 +53,9 @@ var rootCmd = &cobra.Command{
 			if prop == "" {
 				continue
 			}
-			fmt.Printf("CHECKING PROP: %s\n", prop)
 			parts := strings.Split(prop, "@")
 			if len(parts) != 2 {
-				return fmt.Errorf("invalid properties format. Each dependency should be in the format <groupID@artifactID@version>. Usage: pombump --properties=\"<property@version> <property@version>\" ...\"")
+				return fmt.Errorf("invalid properties format. Each dependency should be in the format <property@value>. Usage: pombump --properties=\"<property@value> <property@value>\" ...\"")
 			}
 			propertiesPatches[parts[0]] = parts[1]
 		}
@@ -67,7 +68,7 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to patch the pom file: %w", err)
 		}
-		out, err := xml.Marshal(newPom)
+		out, err := xml.MarshalIndent(newPom, "", "  ")
 		if err != nil {
 			return fmt.Errorf("failed to marshal the pom file: %w", err)
 		}
@@ -86,6 +87,6 @@ func init() {
 	rootCmd.DisableAutoGenTag = true
 
 	flagSet := rootCmd.Flags()
-	flagSet.StringVar(&rootFlags.dependencies, "dependencies", "", "A space-separated list of dependencies to update")
-	flagSet.StringVar(&rootFlags.properties, "properties", "", "A space-separated list of properties to update")
+	flagSet.StringVar(&rootFlags.dependencies, "dependencies", "", "A space-separated list of dependencies to update in form groupID@artifactID@version")
+	flagSet.StringVar(&rootFlags.properties, "properties", "", "A space-separated list of properties to update in form property@value")
 }

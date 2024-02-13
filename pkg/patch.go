@@ -3,7 +3,7 @@ package pkg
 import (
 	"fmt"
 
-	"github.com/vifraa/gopom"
+	"github.com/2000Slash/gopom"
 )
 
 /* Example patch for 'proper' dependency:
@@ -22,6 +22,7 @@ type Patch struct {
 	GroupID    string `json:"groupId"`
 	ArtifactID string `json:"artifactId"`
 	Version    string `json:"version"`
+	Scope      string `json:"scope"`
 }
 
 /*
@@ -51,17 +52,22 @@ func PatchProject(project *gopom.Project, patches []Patch, propertyPatches map[s
 	// so that we can add them later.
 	missingDeps := make(map[Patch]Patch)
 	for _, p := range patches {
+		fmt.Printf("Have patch: %s.%s:%s\n", p.GroupID, p.ArtifactID, p.Version)
 		missingDeps[p] = p
 	}
 
-	// If there are any dependencies that need to be patched, do that here.
+	// If there are any hard coded dependencies that need to be patched, do
+	// that here.
 	if project.Dependencies != nil {
-		for _, dep := range *project.Dependencies {
+		for i, dep := range *project.Dependencies {
+			fmt.Printf("Checking DEP: %s.%s:%s\n", dep.GroupID, dep.ArtifactID, dep.Version)
 			for _, patch := range patches {
-				if *dep.ArtifactID == patch.ArtifactID &&
-					*dep.GroupID == patch.GroupID {
-					fmt.Printf("Patching %s.%s from %s to %s", patch.GroupID, patch.ArtifactID, *dep.Version, patch.Version)
-					*dep.Version = patch.Version
+				if dep.ArtifactID == patch.ArtifactID &&
+					dep.GroupID == patch.GroupID {
+					fmt.Printf("Patching %s.%s from %s to %s with scope: %s\n", patch.GroupID, patch.ArtifactID, dep.Version, patch.Version, patch.Scope)
+					(*project.Dependencies)[i].Version = patch.Version
+					(*project.Dependencies)[i].Scope = patch.Scope
+
 					// Found it, so remove it from the missing deps
 					// This is dump, make it better.
 					delete(missingDeps, patch)
@@ -70,13 +76,21 @@ func PatchProject(project *gopom.Project, patches []Patch, propertyPatches map[s
 		}
 	}
 
+	if project.Dependencies != nil {
+		for _, dep := range *project.Dependencies {
+			fmt.Printf("DEP AFTER patching: %s.%s:%s\n", dep.GroupID, dep.ArtifactID, dep.Version)
+		}
+	}
+
 	if project.DependencyManagement != nil {
-		for _, dep := range *project.DependencyManagement.Dependencies {
+		for i, dep := range *project.DependencyManagement.Dependencies {
+			fmt.Printf("Checking DM DEP: %s.%s:%s\n", dep.GroupID, dep.ArtifactID, dep.Version)
 			for _, patch := range patches {
-				if *dep.ArtifactID == patch.ArtifactID &&
-					*dep.GroupID == patch.GroupID {
-					fmt.Printf("Patching %s.%s from %s to %s", patch.GroupID, patch.ArtifactID, *dep.Version, patch.Version)
-					*dep.Version = patch.Version
+				if dep.ArtifactID == patch.ArtifactID &&
+					dep.GroupID == patch.GroupID {
+					fmt.Printf("Patching DM dep %s.%s from %s to %s with scope: %s\n", patch.GroupID, patch.ArtifactID, dep.Version, patch.Version, patch.Scope)
+					(*project.DependencyManagement.Dependencies)[i].Version = patch.Version
+					(*project.DependencyManagement.Dependencies)[i].Scope = patch.Scope
 					// Found it, so remove it from the missing deps
 					// This is dump, make it better.
 					delete(missingDeps, patch)
@@ -92,10 +106,13 @@ func PatchProject(project *gopom.Project, patches []Patch, propertyPatches map[s
 	}
 	for md := range missingDeps {
 		md := md
+		fmt.Printf("Adding missing dependency: %s.%s:%s\n", md.GroupID, md.ArtifactID, md.Version)
+
 		*project.DependencyManagement.Dependencies = append(*project.DependencyManagement.Dependencies, gopom.Dependency{
-			GroupID:    &md.GroupID,
-			ArtifactID: &md.ArtifactID,
-			Version:    &md.Version,
+			GroupID:    md.GroupID,
+			ArtifactID: md.ArtifactID,
+			Version:    md.Version,
+			Scope:      md.Scope,
 		})
 	}
 	if project.Properties == nil {
