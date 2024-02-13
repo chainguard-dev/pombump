@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -37,7 +38,7 @@ func TestSimplePoms(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			in := tc.in
-			got, err := PatchProject(in, tc.patches, tc.props)
+			got, err := PatchProject(context.Background(), in, tc.patches, tc.props)
 			if err != nil {
 				t.Errorf("%s: Failed to patch %+v: %v", tc.name, tc.in, err)
 			}
@@ -83,7 +84,7 @@ func TestPatchesFromPomFiles(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			got, err := PatchProject(parsedPom, tc.patches, tc.props)
+			got, err := PatchProject(context.Background(), parsedPom, tc.patches, tc.props)
 			if err != nil {
 				t.Errorf("%s: Failed to patch %s: %v", tc.name, tc.in, err)
 			}

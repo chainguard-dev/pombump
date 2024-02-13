@@ -1,9 +1,11 @@
 package pkg
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/2000Slash/gopom"
+	"github.com/chainguard-dev/clog"
 )
 
 /* Example patch for 'proper' dependency:
@@ -43,7 +45,8 @@ type PropertyPatch struct {
 // match, it will add the dependency to the project.
 // Also does a blind overwrite of any properties with propertyPatches.
 // TODO(vaikas): Figure out when / if to use DependencyManagement instead.
-func PatchProject(project *gopom.Project, patches []Patch, propertyPatches map[string]string) (*gopom.Project, error) {
+func PatchProject(ctx context.Context, project *gopom.Project, patches []Patch, propertyPatches map[string]string) (*gopom.Project, error) {
+	log := clog.FromContext(ctx)
 	if project == nil {
 		return nil, fmt.Errorf("project is nil")
 	}
@@ -52,7 +55,7 @@ func PatchProject(project *gopom.Project, patches []Patch, propertyPatches map[s
 	// so that we can add them later.
 	missingDeps := make(map[Patch]Patch)
 	for _, p := range patches {
-		fmt.Printf("Have patch: %s.%s:%s\n", p.GroupID, p.ArtifactID, p.Version)
+		log.Infof("Have patch: %s.%s:%s", p.GroupID, p.ArtifactID, p.Version)
 		missingDeps[p] = p
 	}
 
@@ -60,11 +63,11 @@ func PatchProject(project *gopom.Project, patches []Patch, propertyPatches map[s
 	// that here.
 	if project.Dependencies != nil {
 		for i, dep := range *project.Dependencies {
-			fmt.Printf("Checking DEP: %s.%s:%s\n", dep.GroupID, dep.ArtifactID, dep.Version)
+			log.Infof("Checking DEP: %s.%s:%s", dep.GroupID, dep.ArtifactID, dep.Version)
 			for _, patch := range patches {
 				if dep.ArtifactID == patch.ArtifactID &&
 					dep.GroupID == patch.GroupID {
-					fmt.Printf("Patching %s.%s from %s to %s with scope: %s\n", patch.GroupID, patch.ArtifactID, dep.Version, patch.Version, patch.Scope)
+					log.Infof("Patching %s.%s from %s to %s with scope: %s", patch.GroupID, patch.ArtifactID, dep.Version, patch.Version, patch.Scope)
 					(*project.Dependencies)[i].Version = patch.Version
 					(*project.Dependencies)[i].Scope = patch.Scope
 
@@ -78,17 +81,17 @@ func PatchProject(project *gopom.Project, patches []Patch, propertyPatches map[s
 
 	if project.Dependencies != nil {
 		for _, dep := range *project.Dependencies {
-			fmt.Printf("DEP AFTER patching: %s.%s:%s\n", dep.GroupID, dep.ArtifactID, dep.Version)
+			log.Debugf("DEP AFTER patching: %s.%s:%s", dep.GroupID, dep.ArtifactID, dep.Version)
 		}
 	}
 
 	if project.DependencyManagement != nil {
 		for i, dep := range *project.DependencyManagement.Dependencies {
-			fmt.Printf("Checking DM DEP: %s.%s:%s\n", dep.GroupID, dep.ArtifactID, dep.Version)
+			log.Debugf("Checking DM DEP: %s.%s:%s", dep.GroupID, dep.ArtifactID, dep.Version)
 			for _, patch := range patches {
 				if dep.ArtifactID == patch.ArtifactID &&
 					dep.GroupID == patch.GroupID {
-					fmt.Printf("Patching DM dep %s.%s from %s to %s with scope: %s\n", patch.GroupID, patch.ArtifactID, dep.Version, patch.Version, patch.Scope)
+					log.Infof("Patching DM dep %s.%s from %s to %s with scope: %s", patch.GroupID, patch.ArtifactID, dep.Version, patch.Version, patch.Scope)
 					(*project.DependencyManagement.Dependencies)[i].Version = patch.Version
 					(*project.DependencyManagement.Dependencies)[i].Scope = patch.Scope
 					// Found it, so remove it from the missing deps
@@ -106,7 +109,7 @@ func PatchProject(project *gopom.Project, patches []Patch, propertyPatches map[s
 	}
 	for md := range missingDeps {
 		md := md
-		fmt.Printf("Adding missing dependency: %s.%s:%s\n", md.GroupID, md.ArtifactID, md.Version)
+		log.Infof("Adding missing dependency: %s.%s:%s", md.GroupID, md.ArtifactID, md.Version)
 
 		*project.DependencyManagement.Dependencies = append(*project.DependencyManagement.Dependencies, gopom.Dependency{
 			GroupID:    md.GroupID,
