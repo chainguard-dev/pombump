@@ -3,8 +3,8 @@ module github.com/vaikas/pombump
 go 1.21.5
 
 require (
+	github.com/2000Slash/gopom v0.1.2
 	github.com/spf13/cobra v1.8.0
-	github.com/vifraa/gopom v1.0.0
 	sigs.k8s.io/release-utils v0.7.7
 )
 
