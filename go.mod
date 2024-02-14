@@ -7,6 +7,8 @@ require (
 	github.com/2000Slash/gopom v0.1.2
 	github.com/chainguard-dev/clog v1.3.0
 	github.com/charmbracelet/log v0.3.2-0.20240205220859-7a3834f9b367
+	github.com/ghodss/yaml v1.0.0
+	github.com/google/go-cmp v0.6.0
 	github.com/spf13/cobra v1.8.0
 	sigs.k8s.io/release-utils v0.7.7
 )
@@ -26,4 +28,5 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	golang.org/x/exp v0.0.0-20231108232855-2478ac86f678 // indirect
 	golang.org/x/sys v0.16.0 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

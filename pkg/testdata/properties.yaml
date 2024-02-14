@@ -1,0 +1,5 @@
+properties:
+  - property: "prop1"
+    value: "value1"
+  - property: "prop2"
+    value: "value2"

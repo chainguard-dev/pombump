@@ -4,7 +4,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"log/slog"
-	"strings"
 
 	"chainguard.dev/apko/pkg/log"
 	charmlog "github.com/charmbracelet/log"
@@ -16,8 +15,10 @@ import (
 )
 
 type rootCLIFlags struct {
-	dependencies string
-	properties   string
+	dependencies   string
+	properties     string
+	patchFile      string
+	propertiesFile string
 }
 
 var rootFlags rootCLIFlags
@@ -43,39 +44,28 @@ func New() *cobra.Command {
 		// Uncomment the following line if your bare application
 		// has an action associated with it:
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if rootFlags.dependencies == "" && rootFlags.properties == "" {
-				return fmt.Errorf("no dependencies or properties provided. Usage: pombump --dependencies=\"<groupID@artifactID@version> <groupID@artifactID@version> --properties=\"<property@version> <property@version>\"...\"")
-			}
-			dependencies := strings.Split(rootFlags.dependencies, " ")
-			properties := strings.Split(rootFlags.properties, " ")
-
-			patches := []pkg.Patch{}
-			for _, dep := range dependencies {
-				if dep == "" {
-					continue
-				}
-				parts := strings.Split(dep, "@")
-				if len(parts) < 3 {
-					return fmt.Errorf("invalid dependencies format (%s). Each dependency should be in the format <groupID@artifactID@version>. Usage: pombump --dependencies=\"<groupID@artifactID@version> <groupID@artifactID@version> ...\"", dep)
-				}
-				scope := "import"
-				if len(parts) == 4 {
-					scope = parts[3]
-				}
-				patches = append(patches, pkg.Patch{GroupID: parts[0], ArtifactID: parts[1], Version: parts[2], Scope: scope})
+			if rootFlags.dependencies == "" && rootFlags.properties == "" &&
+				rootFlags.patchFile == "" && rootFlags.propertiesFile == "" {
+				return fmt.Errorf("no dependencies or properties provides, use --dependencies/--patch-file or --properties/properties-file")
 			}
 
-			propertiesPatches := map[string]string{}
-			for _, prop := range properties {
-				if prop == "" {
-					continue
-				}
-				parts := strings.Split(prop, "@")
-				if len(parts) != 2 {
-					return fmt.Errorf("invalid properties format. Each dependency should be in the format <property@value>. Usage: pombump --properties=\"<property@value> <property@value>\" ...\"")
-				}
-				propertiesPatches[parts[0]] = parts[1]
+			if rootFlags.patchFile != "" && rootFlags.dependencies != "" {
+				return fmt.Errorf("use either --dependencies or --patch-file")
 			}
+			if rootFlags.propertiesFile != "" && rootFlags.properties != "" {
+				return fmt.Errorf("use either --properties or --properties-file")
+			}
+
+			patches, err := pkg.ParsePatches(rootFlags.patchFile, rootFlags.dependencies)
+			if err != nil {
+				return fmt.Errorf("failed to parse patches: %w", err)
+			}
+
+			propertiesPatches, err := pkg.ParseProperties(rootFlags.propertiesFile, rootFlags.properties)
+			if err != nil {
+				return fmt.Errorf("failed to parse properties: %w", err)
+			}
+
 			parsedPom, err := gopom.Parse(args[0])
 			if err != nil {
 				return fmt.Errorf("failed to parse the pom file: %w", err)
@@ -103,5 +93,7 @@ func New() *cobra.Command {
 	flagSet := cmd.Flags()
 	flagSet.StringVar(&rootFlags.dependencies, "dependencies", "", "A space-separated list of dependencies to update in form groupID@artifactID@version")
 	flagSet.StringVar(&rootFlags.properties, "properties", "", "A space-separated list of properties to update in form property@value")
+	flagSet.StringVar(&rootFlags.patchFile, "patch-file", "", "The input file to read patches from")
+	flagSet.StringVar(&rootFlags.propertiesFile, "properties-file", "", "The input file to read properties from")
 	return cmd
 }

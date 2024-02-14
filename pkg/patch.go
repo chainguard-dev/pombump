@@ -3,9 +3,13 @@ package pkg
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
+	"strings"
 
 	"github.com/2000Slash/gopom"
 	"github.com/chainguard-dev/clog"
+	"github.com/ghodss/yaml"
 )
 
 /* Example patch for 'proper' dependency:
@@ -16,6 +20,10 @@ import (
 </dependency>
 */
 
+type PatchList struct {
+	Patches []Patch `json:"patches"`
+}
+
 // Should this just be a gopom.Dependency??
 // Just start with this for now, change to it if need arises.
 // For now, this is easier to read since the upstream is
@@ -25,6 +33,11 @@ type Patch struct {
 	ArtifactID string `json:"artifactId"`
 	Version    string `json:"version"`
 	Scope      string `json:"scope"`
+	Type       string `json:"type"`
+}
+
+type PropertyList struct {
+	Properties []PropertyPatch `json:"properties"`
 }
 
 /*
@@ -34,11 +47,16 @@ type Patch struct {
 +    <logback-version>1.2.13</logback-version>
 */
 // These are just map[string]string and just a blind overwrite.
-
 type PropertyPatch struct {
 	Property string `json:"property"`
 	Value    string `json:"value"`
 }
+
+// Default scope and type for a dependency. Are these even right?
+const (
+	defaultScope = "import"
+	defaultType  = "jar"
+)
 
 // PatchProject will update versions for all matched dependencies
 // if they are found in Project.Dependencies. If there is no
@@ -70,6 +88,7 @@ func PatchProject(ctx context.Context, project *gopom.Project, patches []Patch, 
 					log.Infof("Patching %s.%s from %s to %s with scope: %s", patch.GroupID, patch.ArtifactID, dep.Version, patch.Version, patch.Scope)
 					(*project.Dependencies)[i].Version = patch.Version
 					(*project.Dependencies)[i].Scope = patch.Scope
+					(*project.Dependencies)[i].Type = patch.Type
 
 					// Found it, so remove it from the missing deps
 					// This is dump, make it better.
@@ -94,6 +113,7 @@ func PatchProject(ctx context.Context, project *gopom.Project, patches []Patch, 
 					log.Infof("Patching DM dep %s.%s from %s to %s with scope: %s", patch.GroupID, patch.ArtifactID, dep.Version, patch.Version, patch.Scope)
 					(*project.DependencyManagement.Dependencies)[i].Version = patch.Version
 					(*project.DependencyManagement.Dependencies)[i].Scope = patch.Scope
+					(*project.DependencyManagement.Dependencies)[i].Type = patch.Type
 					// Found it, so remove it from the missing deps
 					// This is dump, make it better.
 					delete(missingDeps, patch)
@@ -104,7 +124,7 @@ func PatchProject(ctx context.Context, project *gopom.Project, patches []Patch, 
 
 	// If there are any missing dependencies, add them in. I guess add them
 	// to DependencyManagement?
-	if project.DependencyManagement == nil {
+	if project.DependencyManagement == nil && len(missingDeps) > 0 {
 		project.DependencyManagement = &gopom.DependencyManagement{}
 	}
 	for md := range missingDeps {
@@ -116,9 +136,10 @@ func PatchProject(ctx context.Context, project *gopom.Project, patches []Patch, 
 			ArtifactID: md.ArtifactID,
 			Version:    md.Version,
 			Scope:      md.Scope,
+			Type:       md.Type,
 		})
 	}
-	if project.Properties == nil {
+	if project.Properties == nil && len(propertyPatches) > 0 {
 		project.Properties = &gopom.Properties{Entries: propertyPatches}
 	} else {
 		for k, v := range propertyPatches {
@@ -126,4 +147,84 @@ func PatchProject(ctx context.Context, project *gopom.Project, patches []Patch, 
 		}
 	}
 	return project, nil
+}
+
+func ParsePatches(patchFile, patchFlag string) ([]Patch, error) {
+	if patchFile != "" {
+		var patchList PatchList
+		file, err := os.Open(patchFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed reading file: %w", err)
+		}
+		defer file.Close()
+		byteValue, _ := io.ReadAll(file)
+		if err := yaml.Unmarshal(byteValue, &patchList); err != nil {
+			return nil, err
+		}
+		for i := range patchList.Patches {
+			if patchList.Patches[i].Scope == "" {
+				patchList.Patches[i].Scope = defaultScope
+			}
+			if patchList.Patches[i].Type == "" {
+				patchList.Patches[i].Type = defaultType
+			}
+		}
+		return patchList.Patches, nil
+	}
+	dependencies := strings.Split(patchFlag, " ")
+	patches := []Patch{}
+	for _, dep := range dependencies {
+		if dep == "" {
+			continue
+		}
+		parts := strings.Split(dep, "@")
+		if len(parts) < 3 {
+			return nil, fmt.Errorf("invalid dependencies format (%s). Each dependency should be in the format <groupID@artifactID@version[@scope]>. Usage: pombump --dependencies=\"<groupID@artifactID@version@scope> <groupID@artifactID@version> ...\"", dep)
+		}
+		// Default scope. Maybe make this configurable?
+		scope := defaultScope
+		if len(parts) >= 4 {
+			scope = parts[3]
+		}
+		depType := defaultType
+		if len(parts) >= 5 {
+			depType = parts[4]
+		}
+		patches = append(patches, Patch{GroupID: parts[0], ArtifactID: parts[1], Version: parts[2], Scope: scope, Type: depType})
+	}
+	return patches, nil
+}
+
+func ParseProperties(propertyFile, propertiesFlag string) (map[string]string, error) {
+	propertiesPatches := map[string]string{}
+	if propertyFile != "" {
+		var propertyList PropertyList
+		file, err := os.Open(propertyFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed reading file: %w", err)
+		}
+		defer file.Close()
+		byteValue, _ := io.ReadAll(file)
+		if err := yaml.Unmarshal(byteValue, &propertyList); err != nil {
+			return nil, err
+		}
+		for _, v := range propertyList.Properties {
+			propertiesPatches[v.Property] = v.Value
+		}
+		return propertiesPatches, nil
+	}
+
+	properties := strings.Split(propertiesFlag, " ")
+	for _, prop := range properties {
+		if prop == "" {
+			continue
+		}
+		parts := strings.Split(prop, "@")
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("invalid properties format. Each dependency should be in the format <property@value>. Usage: pombump --properties=\"<property@value> <property@value>\" ...\"")
+		}
+		propertiesPatches[parts[0]] = parts[1]
+	}
+
+	return propertiesPatches, nil
 }
