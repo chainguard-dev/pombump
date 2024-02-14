@@ -6,10 +6,19 @@ import (
 	"testing"
 
 	"github.com/2000Slash/gopom"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
-func makeDep(groupID, artifactID, version string) gopom.Dependency {
-	return gopom.Dependency{GroupID: groupID, ArtifactID: artifactID, Version: version}
+func makeDep(groupID, artifactID, version string, opts ...string) gopom.Dependency {
+	dep := gopom.Dependency{GroupID: groupID, ArtifactID: artifactID, Version: version, Scope: defaultScope, Type: defaultType}
+	if len(opts) > 0 {
+		dep.Scope = opts[0]
+	}
+	if len(opts) > 1 {
+		dep.Type = opts[1]
+	}
+	return dep
 }
 
 func TestSimplePoms(t *testing.T) {
@@ -21,19 +30,19 @@ func TestSimplePoms(t *testing.T) {
 		want    *gopom.Project
 	}{{
 		name:    "simple dependency, bumped inline",
-		in:      &gopom.Project{Dependencies: &[]gopom.Dependency{makeDep("a1", "b1", "1.0.0")}},
-		patches: []Patch{{"a1", "b1", "1.0.1", "import"}},
+		in:      &gopom.Project{Dependencies: &[]gopom.Dependency{makeDep("a1", "b1", "1.0.0", "import", "jar")}},
+		patches: []Patch{{"a1", "b1", "1.0.1", "import", "jar"}},
 		want:    &gopom.Project{Dependencies: &[]gopom.Dependency{makeDep("a1", "b1", "1.0.1")}},
 	}, {
 		name:    "simple dependencymanagement, bumped inline",
 		in:      &gopom.Project{DependencyManagement: &gopom.DependencyManagement{Dependencies: &[]gopom.Dependency{makeDep("a2", "b2", "2.0.0")}}},
-		patches: []Patch{{"a2", "b2", "2.0.1", "import"}},
-		want:    &gopom.Project{DependencyManagement: &gopom.DependencyManagement{Dependencies: &[]gopom.Dependency{makeDep("a2", "b2", "2.0.1")}}},
+		patches: []Patch{{"a2", "b2", "2.0.1", "import", "pom"}},
+		want:    &gopom.Project{DependencyManagement: &gopom.DependencyManagement{Dependencies: &[]gopom.Dependency{makeDep("a2", "b2", "2.0.1", "import", "pom")}}},
 	}, {
 		name:    "dependencymanagement, added to dependency management",
 		in:      &gopom.Project{DependencyManagement: &gopom.DependencyManagement{Dependencies: &[]gopom.Dependency{makeDep("other", "b3", "2.0.0")}}},
-		patches: []Patch{{"added", "b", "2.0.1", "import"}},
-		want:    &gopom.Project{DependencyManagement: &gopom.DependencyManagement{Dependencies: &[]gopom.Dependency{makeDep("added", "b", "2.0.1")}}},
+		patches: []Patch{{"added", "b", "2.0.1", "import", "somethingelse"}},
+		want:    &gopom.Project{DependencyManagement: &gopom.DependencyManagement{Dependencies: &[]gopom.Dependency{makeDep("other", "b3", "2.0.0"), makeDep("added", "b", "2.0.1", "import", "somethingelse")}}},
 	}}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -42,7 +51,9 @@ func TestSimplePoms(t *testing.T) {
 			if err != nil {
 				t.Errorf("%s: Failed to patch %+v: %v", tc.name, tc.in, err)
 			}
-			diffProject(t, got, tc.want)
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Errorf("%s: DIFFS: %s", tc.name, diff)
+			}
 		})
 	}
 }
@@ -61,9 +72,9 @@ func TestPatchesFromPomFiles(t *testing.T) {
 		// DependencyManagement.dependencies.
 		name:    "trino - dependency patch - add new ones and replace existing",
 		in:      "trino.pom.xml",
-		patches: []Patch{{GroupID: "io.projectreactor.netty", ArtifactID: "reactor-netty-http", Version: "1.0.39"}, {GroupID: "org.json", ArtifactID: "json", Version: "20231013"}, {ArtifactID: "ch.qos.logback", GroupID: "logback-core", Version: "[1.4.12,2.0.0)"}, {GroupID: "com.azure", ArtifactID: "azure-sdk-bom", Version: "1.2.19"}},
+		patches: []Patch{{GroupID: "io.projectreactor.netty", ArtifactID: "reactor-netty-http", Version: "1.0.39", Scope: "import"}, {GroupID: "org.json", ArtifactID: "json", Version: "20231013"}, {ArtifactID: "ch.qos.logback", GroupID: "logback-core", Version: "[1.4.12,2.0.0)"}, {GroupID: "com.azure", ArtifactID: "azure-sdk-bom", Version: "1.2.19", Type: "pom"}},
 
-		wantDMDeps: []Patch{{GroupID: "io.projectreactor.netty", ArtifactID: "reactor-netty-http", Version: "1.0.39"}, {GroupID: "org.json", ArtifactID: "json", Version: "20231013"}, {ArtifactID: "ch.qos.logback", GroupID: "logback-core", Version: "[1.4.12,2.0.0)"}, {GroupID: "com.azure", ArtifactID: "azure-sdk-bom", Version: "1.2.19"}},
+		wantDMDeps: []Patch{{GroupID: "io.projectreactor.netty", ArtifactID: "reactor-netty-http", Version: "1.0.39", Scope: "import"}, {GroupID: "org.json", ArtifactID: "json", Version: "20231013"}, {ArtifactID: "ch.qos.logback", GroupID: "logback-core", Version: "[1.4.12,2.0.0)"}, {GroupID: "com.azure", ArtifactID: "azure-sdk-bom", Version: "1.2.19", Type: "pom"}},
 	}, {
 		// This patches existing dependencies in a project, but they are
 		// specified in the 'properties' section.
@@ -125,6 +136,12 @@ func checkDeps(t *testing.T, indeps *[]gopom.Dependency, wantdeps []Patch) {
 				if dep.Version != patch.Version {
 					t.Errorf("dep %s.%s version %s != %s", patch.GroupID, patch.ArtifactID, dep.Version, patch.Version)
 				}
+				if dep.Scope != patch.Scope {
+					t.Errorf("dep %s.%s scope %s != %s", patch.GroupID, patch.ArtifactID, dep.Scope, patch.Scope)
+				}
+				if dep.Type != patch.Type {
+					t.Errorf("dep %s.%s type %s != %s", patch.GroupID, patch.ArtifactID, dep.Type, patch.Type)
+				}
 				delete(missing, patch)
 			}
 		}
@@ -139,6 +156,9 @@ func checkDependencies(t *testing.T, project *gopom.Project, deps []Patch) {
 }
 
 func checkDMDependencies(t *testing.T, project *gopom.Project, deps []Patch) {
+	if project.DependencyManagement == nil || project.DependencyManagement.Dependencies == nil && len(deps) > 0 {
+		return
+	}
 	checkDeps(t, project.DependencyManagement.Dependencies, deps)
 }
 
@@ -150,69 +170,161 @@ func checkProps(t *testing.T, project *gopom.Project, props map[string]string) {
 	}
 }
 
-func diffDeps(t *testing.T, got, want *[]gopom.Dependency) {
-	if got == nil && want == nil {
-		return
-	}
-	if got == nil && want != nil {
-		t.Errorf("dependencies is nil but there are (%d) expected dependencies", len(*want))
-		return
-	}
-	if want == nil && got != nil {
-		t.Errorf("want dependencies is nil but there are (%d) expected dependencies", len(*got))
-		return
-	}
-	// In addition to version mismatches, make sure we are not missing any
-	// dependencies that should be there. Knock them off of this when we find
-	// them, regardless of whether the version is matched or not.
-	missing := make(map[gopom.Dependency]gopom.Dependency, len(*want))
-	for _, p := range *want {
-		missing[p] = p
-	}
-	for _, dep := range *got {
-		for _, patch := range *want {
-			if dep.ArtifactID == patch.ArtifactID &&
-				dep.GroupID == patch.GroupID {
-				if dep.Version != patch.Version {
-					t.Errorf("dep %s.%s version %s != %s", patch.GroupID, patch.ArtifactID, dep.Version, patch.Version)
-				}
-				delete(missing, patch)
+func lessPatch(a, b Patch) bool {
+	return a.ArtifactID < b.ArtifactID && a.GroupID < b.GroupID && a.Version < b.Version && a.Scope < b.Scope
+}
+
+func TestParsePatches(t *testing.T) {
+	testCases := []struct {
+		name    string
+		inFile  string
+		inDeps  string
+		want    []Patch
+		wantErr bool
+	}{{
+		name:   "no file",
+		inFile: "",
+		inDeps: "",
+		want:   []Patch{},
+	}, {
+		name:    "file not found",
+		inFile:  "testdata/missing",
+		wantErr: true,
+	}, {
+		name:   "file",
+		inFile: "testdata/patches.yaml",
+		inDeps: "",
+		want: []Patch{{
+			GroupID:    "groupid-2",
+			ArtifactID: "artifactid-2",
+			Version:    "2.0.0",
+			Scope:      "scope-2",
+			Type:       "jar", // defaulted
+		}, {
+			GroupID:    "groupid-1",
+			ArtifactID: "artifactid-1",
+			Version:    "1.0.0",
+			Scope:      "import", // defaulted
+			Type:       "pom",
+		}, {
+			GroupID:    "groupid-3",
+			ArtifactID: "artifactid-3",
+			Version:    "3.0.0",
+			Scope:      "import", // Defaulted
+			Type:       "somethingelse",
+		}},
+	}, {
+		name:   "file - trino",
+		inFile: "testdata/trino-patches.yaml",
+		inDeps: "",
+		want: []Patch{{
+			GroupID:    "io.projectreactor.netty",
+			ArtifactID: "reactor-netty-http",
+			Version:    "1.0.39",
+			Scope:      "import", // defaulted
+			Type:       "jar",    // defaulted
+		}, {
+			GroupID:    "org.json",
+			ArtifactID: "json",
+			Version:    "20231013",
+			Scope:      "import",
+			Type:       "jar",
+		}, {
+			GroupID:    "ch.qos.logback",
+			ArtifactID: "logback-core",
+			Version:    "[1.4.12,2.0.0)",
+			Scope:      "import", // defaulted
+			Type:       "jar",    // defaulted
+		}},
+	}, {
+		name:    "invalid flag",
+		inDeps:  "g1@a1 g2",
+		wantErr: true,
+	}, {
+		name:   "flag",
+		inFile: "",
+		inDeps: "g1@a1@v1 g2@a2@v2@scope-2 g3@a3@v3@scope-3@type-3",
+		want: []Patch{{
+			GroupID:    "g2",
+			ArtifactID: "a2",
+			Version:    "v2",
+			Scope:      "scope-2",
+			Type:       "jar", // default
+		}, {
+			GroupID:    "g3",
+			ArtifactID: "a3",
+			Version:    "v3",
+			Scope:      "scope-3", // default
+			Type:       "type-3",
+		}, {
+			GroupID:    "g1",
+			ArtifactID: "a1",
+			Version:    "v1",
+			Scope:      "import", // default
+			Type:       "jar",    // default
+		}},
+	}}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := ParsePatches(tc.inFile, tc.inDeps)
+			if (err != nil) != tc.wantErr {
+				t.Errorf("%s: ParsePatches(%s, %s) = %v)", tc.name, tc.inFile, tc.inDeps, err)
 			}
-		}
-	}
-	if len(missing) > 0 {
-		t.Errorf("missing dependencies: %+v", missing)
+			// We don't care about the order of the patches
+			if diff := cmp.Diff(tc.want, got, cmpopts.SortSlices(lessPatch)); diff != "" {
+				t.Errorf("%s: ParsePatches(%s, %s) (-got +want)\n%s", tc.name, tc.inFile, tc.inDeps, diff)
+			}
+		})
 	}
 }
 
-func diffDMs(t *testing.T, got, want *gopom.DependencyManagement) {
-	switch {
-	case got == nil && want == nil:
-		return
-	case got == nil && want != nil:
-		if want.Dependencies != nil {
-			t.Errorf("dependencies is nil but there are (%d) expected dependencies", len(*want.Dependencies))
-		}
-		return
-	case got != nil && want == nil:
-		if got.Dependencies != nil {
-			t.Errorf("expected is nil but there are (%d) dependencies", len(*got.Dependencies))
-		}
-		return
-	case got.Dependencies == nil && want.Dependencies == nil:
-		return
-	case got.Dependencies == nil && want.Dependencies != nil:
-		t.Errorf("depe ndencies is nil but there are (%d) expected dependencies", len(*want.Dependencies))
-		return
-	case got.Dependencies != nil && want.Dependencies == nil:
-		t.Errorf("expected is nil but there are (%d) dependencies", len(*got.Dependencies))
-		return
+func TestParseProperties(t *testing.T) {
+	testCases := []struct {
+		name    string
+		inFile  string
+		inProps string
+		want    map[string]string
+		wantErr bool
+	}{{
+		name:    "no file",
+		inFile:  "",
+		inProps: "",
+		want:    map[string]string{},
+	}, {
+		name:    "file not found",
+		inFile:  "testdata/missing",
+		wantErr: true,
+	}, {
+		name:    "file",
+		inFile:  "testdata/properties.yaml",
+		inProps: "",
+		want: map[string]string{
+			"prop2": "value2",
+			"prop1": "value1",
+		},
+	}, {
+		name:    "flag",
+		inFile:  "",
+		inProps: "key-1@value-1 key-2@value-2",
+		want: map[string]string{
+			"key-1": "value-1",
+			"key-2": "value-2",
+		},
+	}, {
+		name:    "invalid flag",
+		inFile:  "",
+		inProps: "key-1",
+		wantErr: true,
+	}}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := ParseProperties(tc.inFile, tc.inProps)
+			if (err != nil) != tc.wantErr {
+				t.Errorf("%s: ParseProperties(%s, %s) = %v)", tc.name, tc.inFile, tc.inProps, err)
+			}
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Errorf("%s: ParseProperties(%s, %s) (-got +want)\n%s", tc.name, tc.inFile, tc.inProps, diff)
+			}
+		})
 	}
-	diffDeps(t, got.Dependencies, want.Dependencies)
-}
-
-func diffProject(t *testing.T, got, want *gopom.Project) {
-	t.Logf("Diffing %+v %+v", got, want)
-	diffDeps(t, got.Dependencies, want.Dependencies)
-	diffDMs(t, got.DependencyManagement, want.DependencyManagement)
 }
