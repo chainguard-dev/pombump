@@ -29,11 +29,11 @@ type PatchList struct {
 // For now, this is easier to read since the upstream is
 // xml based, no other real reason.
 type Patch struct {
-	GroupID    string `json:"groupId"`
-	ArtifactID string `json:"artifactId"`
-	Version    string `json:"version"`
-	Scope      string `json:"scope"`
-	Type       string `json:"type"`
+	GroupID    string `json:"groupId" yaml:"groupId"`
+	ArtifactID string `json:"artifactId" yaml:"artifactId"`
+	Version    string `json:"version" yaml:"version"`
+	Scope      string `json:"scope,omitempty" yaml:"scope,omitempty"`
+	Type       string `json:"type,omitempty" yaml:"type,omitempty"`
 }
 
 type PropertyList struct {
