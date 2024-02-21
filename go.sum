@@ -1,7 +1,5 @@
 chainguard.dev/apko v0.14.1-0.20240210120952-623f9b1c1ae1 h1:H6hm7vjQx/43tlwePmNxbXqL7R9fbiqX/YER9xND5+c=
 chainguard.dev/apko v0.14.1-0.20240210120952-623f9b1c1ae1/go.mod h1:fEYr33zuMtpalgyPGEjOT43WdKYYRn8Y80Y/BApyINw=
-github.com/2000Slash/gopom v0.1.2 h1:VpejUSaPFWqyDsePxFJBYYZCkdg3Iznf1FXM5zDR7p0=
-github.com/2000Slash/gopom v0.1.2/go.mod h1:JulloqufDcE0J0+7pZhkTZqpMypZn39gS8zUqBRufNw=
 github.com/aymanbagabas/go-osc52/v2 v2.0.1 h1:HwpRHbFMcZLEVr42D4p7XBqjyuxQH5SMiErDT4WkJ2k=
 github.com/aymanbagabas/go-osc52/v2 v2.0.1/go.mod h1:uYgXzlJ7ZpABp8OJ+exZzJJhRNQ2ASbcXHWsFqH8hp8=
 github.com/chainguard-dev/clog v1.3.0 h1:L/ey0VNH958YpzQa5OO2e2q+iOENxtLAhqkmgzh03e0=
@@ -50,6 +48,8 @@ github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
+github.com/vaikas/gopom v0.0.0-20240221023839-49fe93ab9302 h1:Smw2CQn0eMXdv9cfCkE18zml1mtEbMeWu+VwMD1EDks=
+github.com/vaikas/gopom v0.0.0-20240221023839-49fe93ab9302/go.mod h1:JulloqufDcE0J0+7pZhkTZqpMypZn39gS8zUqBRufNw=
 golang.org/x/exp v0.0.0-20231108232855-2478ac86f678 h1:mchzmB1XO2pMaKFRqk/+MV3mgGG96aqaPXaMifQU47w=
 golang.org/x/exp v0.0.0-20231108232855-2478ac86f678/go.mod h1:zk2irFbV9DP96SEBUUAy67IdHUaZuSnrz1n472HUCLE=
 golang.org/x/sys v0.6.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
