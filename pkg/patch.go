@@ -37,7 +37,7 @@ type Patch struct {
 }
 
 type PropertyList struct {
-	Properties []PropertyPatch `json:"properties"`
+	Properties []PropertyPatch `json:"properties" yaml:"properties"`
 }
 
 /*
@@ -48,8 +48,8 @@ type PropertyList struct {
 */
 // These are just map[string]string and just a blind overwrite.
 type PropertyPatch struct {
-	Property string `json:"property"`
-	Value    string `json:"value"`
+	Property string `json:"property" yaml:"property"`
+	Value    string `json:"value" yaml:"value"`
 }
 
 // Default scope and type for a dependency. Are these even right?
@@ -143,6 +143,12 @@ func PatchProject(ctx context.Context, project *gopom.Project, patches []Patch, 
 		project.Properties = &gopom.Properties{Entries: propertyPatches}
 	} else {
 		for k, v := range propertyPatches {
+			val, exists := project.Properties.Entries[k]
+			if exists {
+				log.Infof("Patching property: %s from %s to %s", k, val, v)
+			} else {
+				log.Infof("Creating property: %s as %s", k, v)
+			}
 			project.Properties.Entries[k] = v
 		}
 	}
