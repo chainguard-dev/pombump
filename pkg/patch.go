@@ -79,6 +79,8 @@ func PatchProject(ctx context.Context, project *gopom.Project, patches []Patch, 
 
 	// If there are any hard coded dependencies that need to be patched, do
 	// that here.
+	// Note that we do not patch scope, or type, since they should already be
+	// configured correctly.
 	if project.Dependencies != nil {
 		for i, dep := range *project.Dependencies {
 			log.Infof("Checking DEP: %s.%s:%s", dep.GroupID, dep.ArtifactID, dep.Version)
@@ -87,8 +89,6 @@ func PatchProject(ctx context.Context, project *gopom.Project, patches []Patch, 
 					dep.GroupID == patch.GroupID {
 					log.Infof("Patching %s.%s from %s to %s with scope: %s", patch.GroupID, patch.ArtifactID, dep.Version, patch.Version, patch.Scope)
 					(*project.Dependencies)[i].Version = patch.Version
-					(*project.Dependencies)[i].Scope = patch.Scope
-					(*project.Dependencies)[i].Type = patch.Type
 
 					// Found it, so remove it from the missing deps
 					// This is dump, make it better.
@@ -104,6 +104,8 @@ func PatchProject(ctx context.Context, project *gopom.Project, patches []Patch, 
 		}
 	}
 
+	// Note that we do not patch scope, or type, since they should already be
+	// configured correctly.
 	if project.DependencyManagement != nil {
 		for i, dep := range *project.DependencyManagement.Dependencies {
 			log.Debugf("Checking DM DEP: %s.%s:%s", dep.GroupID, dep.ArtifactID, dep.Version)
@@ -112,8 +114,6 @@ func PatchProject(ctx context.Context, project *gopom.Project, patches []Patch, 
 					dep.GroupID == patch.GroupID {
 					log.Infof("Patching DM dep %s.%s from %s to %s with scope: %s", patch.GroupID, patch.ArtifactID, dep.Version, patch.Version, patch.Scope)
 					(*project.DependencyManagement.Dependencies)[i].Version = patch.Version
-					(*project.DependencyManagement.Dependencies)[i].Scope = patch.Scope
-					(*project.DependencyManagement.Dependencies)[i].Type = patch.Type
 					// Found it, so remove it from the missing deps
 					// This is dump, make it better.
 					delete(missingDeps, patch)
