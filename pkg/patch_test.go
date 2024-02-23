@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/2000Slash/gopom"
+	"github.com/chainguard-dev/gopom"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 )

@@ -8,7 +8,7 @@ import (
 	"chainguard.dev/apko/pkg/log"
 	charmlog "github.com/charmbracelet/log"
 
-	"github.com/2000Slash/gopom"
+	"github.com/chainguard-dev/gopom"
 	"github.com/spf13/cobra"
 	"github.com/vaikas/pombump/pkg"
 	"sigs.k8s.io/release-utils/version"
