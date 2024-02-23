@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/2000Slash/gopom"
 	"github.com/chainguard-dev/clog"
+	"github.com/chainguard-dev/gopom"
 	"github.com/ghodss/yaml"
 )
 

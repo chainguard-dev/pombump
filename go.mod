@@ -1,13 +1,11 @@
 module github.com/vaikas/pombump
 
-replace github.com/2000Slash/gopom => github.com/chainguard-dev/gopom v0.0.0-20240223180630-6228148e3038
-
 go 1.21.5
 
 require (
 	chainguard.dev/apko v0.14.1-0.20240210120952-623f9b1c1ae1
-	github.com/2000Slash/gopom v0.0.0-00010101000000-000000000000
 	github.com/chainguard-dev/clog v1.3.0
+	github.com/chainguard-dev/gopom v0.0.0-20240223181352-5eaab35c4150
 	github.com/charmbracelet/log v0.3.2-0.20240205220859-7a3834f9b367
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/go-cmp v0.6.0
