@@ -5,7 +5,7 @@ go 1.21.5
 require (
 	chainguard.dev/apko v0.14.1-0.20240210120952-623f9b1c1ae1
 	github.com/chainguard-dev/clog v1.3.0
-	github.com/chainguard-dev/gopom v0.0.0-20240223181352-5eaab35c4150
+	github.com/chainguard-dev/gopom v0.0.0-20240227213952-2c1f77b25130
 	github.com/charmbracelet/log v0.3.2-0.20240205220859-7a3834f9b367
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/go-cmp v0.6.0

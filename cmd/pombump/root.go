@@ -1,7 +1,6 @@
 package pombump
 
 import (
-	"encoding/xml"
 	"fmt"
 	"log/slog"
 
@@ -75,7 +74,8 @@ func New() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("failed to patch the pom file: %w", err)
 			}
-			out, err := xml.MarshalIndent(newPom, "", "  ")
+
+			out, err := newPom.Marshal()
 			if err != nil {
 				return fmt.Errorf("failed to marshal the pom file: %w", err)
 			}
