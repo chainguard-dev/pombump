@@ -6,6 +6,8 @@ github.com/chainguard-dev/clog v1.3.0 h1:L/ey0VNH958YpzQa5OO2e2q+iOENxtLAhqkmgzh
 github.com/chainguard-dev/clog v1.3.0/go.mod h1:cV516KZWqYc/phZsCNwF36u/KMGS+Gj5Uqeb8Hlp95Y=
 github.com/chainguard-dev/gopom v0.0.0-20240223181352-5eaab35c4150 h1:XVu/LOxiwgSvcmqzuJefhAITipIHcb/9eVZ830HKt6c=
 github.com/chainguard-dev/gopom v0.0.0-20240223181352-5eaab35c4150/go.mod h1:XvyBLLSAXBovR/YHTQx/+VdwhOEmthd6NYxOwA0gVQY=
+github.com/chainguard-dev/gopom v0.0.0-20240227213952-2c1f77b25130 h1:wzByJkHm0p5SNrE3D3nFcbyJeE4qbgy5gvSLL6uKY0c=
+github.com/chainguard-dev/gopom v0.0.0-20240227213952-2c1f77b25130/go.mod h1:XvyBLLSAXBovR/YHTQx/+VdwhOEmthd6NYxOwA0gVQY=
 github.com/charmbracelet/lipgloss v0.9.1 h1:PNyd3jvaJbg4jRHKWXnCj1akQm4rh8dbEzN1p/u1KWg=
 github.com/charmbracelet/lipgloss v0.9.1/go.mod h1:1mPmG4cxScwUQALAAnacHaigiiHB9Pmr+v1VEawJl6I=
 github.com/charmbracelet/log v0.3.2-0.20240205220859-7a3834f9b367 h1:1MMPxtIznPH0tm+nC6rTkwZKJ3741yM++MGh+aY6XKg=
