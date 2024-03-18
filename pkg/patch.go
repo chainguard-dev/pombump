@@ -125,7 +125,9 @@ func PatchProject(ctx context.Context, project *gopom.Project, patches []Patch, 
 	// If there are any missing dependencies, add them in. I guess add them
 	// to DependencyManagement?
 	if project.DependencyManagement == nil && len(missingDeps) > 0 {
-		project.DependencyManagement = &gopom.DependencyManagement{}
+		project.DependencyManagement = &gopom.DependencyManagement{
+			Dependencies: &[]gopom.Dependency{},
+		}
 	}
 	for md := range missingDeps {
 		md := md
