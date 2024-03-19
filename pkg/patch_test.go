@@ -88,6 +88,12 @@ func TestPatchesFromPomFiles(t *testing.T) {
 		in:       "cloudwatch-exporter.pom.xml",
 		patches:  []Patch{{GroupID: "org.eclipse.jetty", ArtifactID: "jetty-servlet", Version: "11.0.16"}},
 		wantDeps: []Patch{{GroupID: "org.eclipse.jetty", ArtifactID: "jetty-servlet", Version: "11.0.16"}},
+	}, {
+		// This patches existing dependency in a project
+		name:       "common-docker - nil DependencyManagement",
+		in:         "common-docker.pom.xml",
+		patches:    []Patch{{GroupID: "org.bitbucket.b_c", ArtifactID: "jose4j", Version: "0.9.6"}},
+		wantDMDeps: []Patch{{GroupID: "org.bitbucket.b_c", ArtifactID: "jose4j", Version: "0.9.6"}},
 	}}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
