@@ -1,4 +1,4 @@
-module github.com/vaikas/pombump
+module github.com/chainguard-dev/pombump
 
 go 1.21.5
 require (
