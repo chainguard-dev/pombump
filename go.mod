@@ -1,6 +1,9 @@
 module github.com/vaikas/pombump
 
-go 1.21.5
+go 1.22.3
+
+toolchain go1.23.4
+
 require (
 	chainguard.dev/apko v0.14.5
 	github.com/chainguard-dev/clog v1.3.1
