@@ -8,8 +8,8 @@ import (
 	charmlog "github.com/charmbracelet/log"
 
 	"github.com/chainguard-dev/gopom"
+	"github.com/chainguard-dev/pombump/pkg"
 	"github.com/spf13/cobra"
-	"github.com/vaikas/pombump/pkg"
 	"sigs.k8s.io/release-utils/version"
 )
 

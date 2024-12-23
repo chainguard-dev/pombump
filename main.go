@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/vaikas/pombump/cmd/pombump"
+	"github.com/chainguard-dev/pombump/cmd/pombump"
 )
 
 func main() {
