@@ -1,12 +1,11 @@
 module github.com/chainguard-dev/pombump
 
 go 1.22.3
-
 toolchain go1.23.4
 
 require (
 	chainguard.dev/apko v0.14.5
-	github.com/chainguard-dev/clog v1.3.1
+	github.com/chainguard-dev/clog v1.5.1
 	github.com/chainguard-dev/gopom v0.0.0-20240301030452-df486dbf46e7
 	github.com/charmbracelet/log v0.4.0
 	github.com/ghodss/yaml v1.0.0
