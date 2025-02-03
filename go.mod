@@ -6,7 +6,7 @@ toolchain go1.23.4
 
 require (
 	chainguard.dev/apko v0.14.5
-	github.com/chainguard-dev/clog v1.5.1
+	github.com/chainguard-dev/clog v1.6.1
 	github.com/chainguard-dev/gopom v0.0.0-20240304142419-6d0738db6e89
 	github.com/charmbracelet/log v0.4.0
 	github.com/ghodss/yaml v1.0.0
