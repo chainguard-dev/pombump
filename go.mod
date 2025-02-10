@@ -12,7 +12,7 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/go-cmp v0.6.0
 	github.com/spf13/cobra v1.8.1
-	sigs.k8s.io/release-utils v0.9.0
+	sigs.k8s.io/release-utils v0.11.0
 )
 
 require (
