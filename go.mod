@@ -8,7 +8,7 @@ require (
 	github.com/chainguard-dev/gopom v0.0.0-20240304142419-6d0738db6e89
 	github.com/charmbracelet/log v0.4.1
 	github.com/ghodss/yaml v1.0.0
-	github.com/google/go-cmp v0.6.0
+	github.com/google/go-cmp v0.7.0
 	github.com/spf13/cobra v1.9.1
 	sigs.k8s.io/release-utils v0.11.1
 )
