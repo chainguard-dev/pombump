@@ -160,14 +160,19 @@ func PatchProject(ctx context.Context, project *gopom.Project, patches []Patch, 
 	return project, nil
 }
 
-func ParsePatches(patchFile, patchFlag string) ([]Patch, error) {
+func ParsePatches(ctx context.Context, patchFile, patchFlag string) ([]Patch, error) {
 	if patchFile != "" {
 		var patchList PatchList
 		file, err := os.Open(patchFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed reading file: %w", err)
 		}
-		defer file.Close()
+		// Ensure we handle err from file.Close()
+		defer func() {
+			if err := file.Close(); err != nil {
+				clog.FromContext(ctx).Warnf("failed to close file: %v", err)
+			}
+		}()
 		byteValue, _ := io.ReadAll(file)
 		if err := yaml.Unmarshal(byteValue, &patchList); err != nil {
 			return nil, err
@@ -206,7 +211,7 @@ func ParsePatches(patchFile, patchFlag string) ([]Patch, error) {
 	return patches, nil
 }
 
-func ParseProperties(propertyFile, propertiesFlag string) (map[string]string, error) {
+func ParseProperties(ctx context.Context, propertyFile, propertiesFlag string) (map[string]string, error) {
 	propertiesPatches := map[string]string{}
 	if propertyFile != "" {
 		var propertyList PropertyList
@@ -214,7 +219,12 @@ func ParseProperties(propertyFile, propertiesFlag string) (map[string]string, er
 		if err != nil {
 			return nil, fmt.Errorf("failed reading file: %w", err)
 		}
-		defer file.Close()
+		// Ensure we handle err from file.Close()
+		defer func() {
+			if err := file.Close(); err != nil {
+				clog.FromContext(ctx).Warnf("failed to close file: %v", err)
+			}
+		}()
 		byteValue, _ := io.ReadAll(file)
 		if err := yaml.Unmarshal(byteValue, &propertyList); err != nil {
 			return nil, err

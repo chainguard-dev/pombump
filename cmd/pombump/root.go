@@ -55,12 +55,12 @@ func New() *cobra.Command {
 				return fmt.Errorf("use either --properties or --properties-file")
 			}
 
-			patches, err := pkg.ParsePatches(rootFlags.patchFile, rootFlags.dependencies)
+			patches, err := pkg.ParsePatches(cmd.Context(), rootFlags.patchFile, rootFlags.dependencies)
 			if err != nil {
 				return fmt.Errorf("failed to parse patches: %w", err)
 			}
 
-			propertiesPatches, err := pkg.ParseProperties(rootFlags.propertiesFile, rootFlags.properties)
+			propertiesPatches, err := pkg.ParseProperties(cmd.Context(), rootFlags.propertiesFile, rootFlags.properties)
 			if err != nil {
 				return fmt.Errorf("failed to parse properties: %w", err)
 			}
