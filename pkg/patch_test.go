@@ -184,7 +184,7 @@ func TestNilPointerDereferenceDependenciesRegression(t *testing.T) {
 		t.Fatalf("Failed to parse zipkin.pom.xml: %v", err)
 	}
 
-	patches, err := ParsePatches("testdata/zipkin-pombump-deps.yaml", "")
+	patches, err := ParsePatches(context.Background(), "testdata/zipkin-pombump-deps.yaml", "")
 	if err != nil {
 		t.Fatalf("Failed to parse zipkin-pombump-deps.yaml: %v", err)
 	}
@@ -292,7 +292,7 @@ func TestParsePatches(t *testing.T) {
 	}}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := ParsePatches(tc.inFile, tc.inDeps)
+			got, err := ParsePatches(context.Background(), tc.inFile, tc.inDeps)
 			if (err != nil) != tc.wantErr {
 				t.Errorf("%s: ParsePatches(%s, %s) = %v)", tc.name, tc.inFile, tc.inDeps, err)
 			}
@@ -344,7 +344,7 @@ func TestParseProperties(t *testing.T) {
 	}}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := ParseProperties(tc.inFile, tc.inProps)
+			got, err := ParseProperties(context.Background(), tc.inFile, tc.inProps)
 			if (err != nil) != tc.wantErr {
 				t.Errorf("%s: ParseProperties(%s, %s) = %v)", tc.name, tc.inFile, tc.inProps, err)
 			}
