@@ -176,6 +176,26 @@ func checkProps(t *testing.T, project *gopom.Project, props map[string]string) {
 	}
 }
 
+func TestNilPointerDereferenceDependenciesRegression(t *testing.T) {
+	// Test the specific case that caused the nil pointer panic:
+	// zipkin.pom.xml has a dependencyManagement section but no dependencies element
+	project, err := gopom.Parse("testdata/zipkin.pom.xml")
+	if err != nil {
+		t.Fatalf("Failed to parse zipkin.pom.xml: %v", err)
+	}
+
+	patches, err := ParsePatches("testdata/zipkin-pombump-deps.yaml", "")
+	if err != nil {
+		t.Fatalf("Failed to parse zipkin-pombump-deps.yaml: %v", err)
+	}
+
+	// This should not panic
+	_, err = PatchProject(context.Background(), project, patches, nil)
+	if err != nil {
+		t.Errorf("PatchProject failed: %v", err)
+	}
+}
+
 func lessPatch(a, b Patch) bool {
 	return a.ArtifactID < b.ArtifactID && a.GroupID < b.GroupID && a.Version < b.Version && a.Scope < b.Scope
 }

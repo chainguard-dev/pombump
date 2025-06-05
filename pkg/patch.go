@@ -106,7 +106,7 @@ func PatchProject(ctx context.Context, project *gopom.Project, patches []Patch, 
 
 	// Note that we do not patch scope, or type, since they should already be
 	// configured correctly.
-	if project.DependencyManagement != nil {
+	if project.DependencyManagement != nil && project.DependencyManagement.Dependencies != nil {
 		for i, dep := range *project.DependencyManagement.Dependencies {
 			log.Debugf("Checking DM DEP: %s.%s:%s", dep.GroupID, dep.ArtifactID, dep.Version)
 			for _, patch := range patches {
@@ -122,11 +122,14 @@ func PatchProject(ctx context.Context, project *gopom.Project, patches []Patch, 
 		}
 	}
 
-	// If there are any missing dependencies, add them in. I guess add them
-	// to DependencyManagement?
-	if project.DependencyManagement == nil && len(missingDeps) > 0 {
-		project.DependencyManagement = &gopom.DependencyManagement{
-			Dependencies: &[]gopom.Dependency{},
+	// Initialize DependencyManagement if needed for missing dependencies
+	if len(missingDeps) > 0 {
+		if project.DependencyManagement == nil {
+			project.DependencyManagement = &gopom.DependencyManagement{
+				Dependencies: &[]gopom.Dependency{},
+			}
+		} else if project.DependencyManagement.Dependencies == nil {
+			project.DependencyManagement.Dependencies = &[]gopom.Dependency{}
 		}
 	}
 	for md := range missingDeps {
