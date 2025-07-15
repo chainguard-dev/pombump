@@ -1,0 +1,5 @@
+properties: 
+  - property: slf4j.version
+    value: 2.0.16
+  - property: logback.version
+    value: 1.5.16

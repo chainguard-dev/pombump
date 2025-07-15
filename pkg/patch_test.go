@@ -197,7 +197,16 @@ func TestNilPointerDereferenceDependenciesRegression(t *testing.T) {
 }
 
 func lessPatch(a, b Patch) bool {
-	return a.ArtifactID < b.ArtifactID && a.GroupID < b.GroupID && a.Version < b.Version && a.Scope < b.Scope
+	if a.GroupID != b.GroupID {
+		return a.GroupID < b.GroupID
+	}
+	if a.ArtifactID != b.ArtifactID {
+		return a.ArtifactID < b.ArtifactID
+	}
+	if a.Version != b.Version {
+		return a.Version < b.Version
+	}
+	return a.Scope < b.Scope
 }
 
 func TestParsePatches(t *testing.T) {
@@ -224,7 +233,7 @@ func TestParsePatches(t *testing.T) {
 			GroupID:    "groupid-2",
 			ArtifactID: "artifactid-2",
 			Version:    "2.0.0",
-			Scope:      "scope-2",
+			Scope:      "compile",
 			Type:       "jar", // defaulted
 		}, {
 			GroupID:    "groupid-1",
@@ -269,18 +278,18 @@ func TestParsePatches(t *testing.T) {
 	}, {
 		name:   "flag",
 		inFile: "",
-		inDeps: "g1@a1@v1 g2@a2@v2@scope-2 g3@a3@v3@scope-3@type-3",
+		inDeps: "g1@a1@v1 g2@a2@v2@compile g3@a3@v3@runtime@type-3",
 		want: []Patch{{
 			GroupID:    "g2",
 			ArtifactID: "a2",
 			Version:    "v2",
-			Scope:      "scope-2",
+			Scope:      "compile",
 			Type:       "jar", // default
 		}, {
 			GroupID:    "g3",
 			ArtifactID: "a3",
 			Version:    "v3",
-			Scope:      "scope-3", // default
+			Scope:      "runtime", // default
 			Type:       "type-3",
 		}, {
 			GroupID:    "g1",
