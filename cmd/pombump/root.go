@@ -65,6 +65,11 @@ func New() *cobra.Command {
 				return fmt.Errorf("failed to parse properties: %w", err)
 			}
 
+			// Validate input file path
+			if err := pkg.ValidateFilePath(args[0]); err != nil {
+				return fmt.Errorf("invalid input file path: %w", err)
+			}
+			
 			parsedPom, err := gopom.Parse(args[0])
 			if err != nil {
 				return fmt.Errorf("failed to parse the pom file: %w", err)
@@ -79,6 +84,13 @@ func New() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("failed to marshal the pom file: %w", err)
 			}
+			
+			// Preserve comments from the original file
+			out, err = pkg.PreserveCommentsInPOMUpdate(args[0], out)
+			if err != nil {
+				return fmt.Errorf("failed to preserve comments: %w", err)
+			}
+			
 			fmt.Println(string(out))
 			return nil
 		},

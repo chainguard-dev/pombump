@@ -6,7 +6,7 @@ patches:
   - groupID: groupid-2
     artifactID: artifactid-2
     version: 2.0.0
-    scope: scope-2
+    scope: compile
   - groupID: groupid-3
     artifactID: artifactid-3
     type: somethingelse
