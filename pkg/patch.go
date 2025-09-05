@@ -36,6 +36,7 @@ type Patch struct {
 	Type       string `json:"type,omitempty" yaml:"type,omitempty"`
 }
 
+
 type PropertyList struct {
 	Properties []PropertyPatch `json:"properties" yaml:"properties"`
 }
