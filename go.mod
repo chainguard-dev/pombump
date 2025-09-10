@@ -9,7 +9,7 @@ require (
 	github.com/charmbracelet/log v0.4.2
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/go-cmp v0.7.0
-	github.com/spf13/cobra v1.9.1
+	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.10.0
 	sigs.k8s.io/release-utils v0.11.1
 )
@@ -33,7 +33,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
-	github.com/spf13/pflag v1.0.6 // indirect
+	github.com/spf13/pflag v1.0.9 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67 // indirect
 	golang.org/x/sys v0.30.0 // indirect
