@@ -87,6 +87,7 @@ func New() *cobra.Command {
 	cmd.PersistentFlags().Var(&level, "log-level", "log level (e.g. debug, info, warn, error)")
 
 	cmd.AddCommand(version.WithFont("starwars"))
+	cmd.AddCommand(AnalyzeCmd())
 
 	cmd.DisableAutoGenTag = true
 
