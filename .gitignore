@@ -1,0 +1,16 @@
+.vscode
+.idea/
+.DS_Store
+.terraform.lock.hcl
+.terraform
+plan.out
+gha-creds-*.json
+terraform.tfstate*
+*.tfstate*
+*.zip
+*wolfibump
+*golangci-lint
+go.work.sum
+vendor/**
+
+**/.claude/settings.local.json

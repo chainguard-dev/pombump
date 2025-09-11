@@ -20,14 +20,12 @@ import (
 </dependency>
 */
 
+// PatchList contains a list of dependency patches
 type PatchList struct {
 	Patches []Patch `json:"patches"`
 }
 
-// Should this just be a gopom.Dependency??
-// Just start with this for now, change to it if need arises.
-// For now, this is easier to read since the upstream is
-// xml based, no other real reason.
+// Patch represents a dependency version update to be applied to a POM file
 type Patch struct {
 	GroupID    string `json:"groupId" yaml:"groupId"`
 	ArtifactID string `json:"artifactId" yaml:"artifactId"`
@@ -36,18 +34,12 @@ type Patch struct {
 	Type       string `json:"type,omitempty" yaml:"type,omitempty"`
 }
 
-
+// PropertyList contains a list of Maven property updates
 type PropertyList struct {
 	Properties []PropertyPatch `json:"properties" yaml:"properties"`
 }
 
-/*
-<!-- dependency versions -->
-<slf4j.version>1.7.30</slf4j.version>
--    <logback-version>1.2.10</logback-version>
-+    <logback-version>1.2.13</logback-version>
-*/
-// These are just map[string]string and just a blind overwrite.
+// PropertyPatch represents a Maven property value update
 type PropertyPatch struct {
 	Property string `json:"property" yaml:"property"`
 	Value    string `json:"value" yaml:"value"`
@@ -161,6 +153,7 @@ func PatchProject(ctx context.Context, project *gopom.Project, patches []Patch, 
 	return project, nil
 }
 
+// ParsePatches parses patch specifications from file and/or command line flags
 func ParsePatches(ctx context.Context, patchFile, patchFlag string) ([]Patch, error) {
 	if patchFile != "" {
 		var patchList PatchList
@@ -212,6 +205,7 @@ func ParsePatches(ctx context.Context, patchFile, patchFlag string) ([]Patch, er
 	return patches, nil
 }
 
+// ParseProperties parses property specifications from file and/or command line flags
 func ParseProperties(ctx context.Context, propertyFile, propertiesFlag string) (map[string]string, error) {
 	propertiesPatches := map[string]string{}
 	if propertyFile != "" {

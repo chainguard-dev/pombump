@@ -1,3 +1,4 @@
+// Package pombump provides Maven POM analysis and dependency patching commands
 package pombump
 
 import (
@@ -21,6 +22,7 @@ type analyzeCLIFlags struct {
 
 var analyzeFlags analyzeCLIFlags
 
+// AnalyzeCmd creates the analyze command for dependency analysis and patching
 func AnalyzeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "analyze <pom-file>",
@@ -50,7 +52,7 @@ Examples:
 			// Analyze the project (with property search if requested)
 			var analysis *pkg.AnalysisResult
 			var err error
-			
+
 			if analyzeFlags.searchProperties {
 				// Use enhanced analysis that searches for properties
 				analysis, err = pkg.AnalyzeProjectPath(cmd.Context(), args[0])
@@ -63,7 +65,7 @@ Examples:
 				if err != nil {
 					return fmt.Errorf("failed to parse POM file: %w", err)
 				}
-				
+
 				analysis, err = pkg.AnalyzeProject(cmd.Context(), parsedPom)
 				if err != nil {
 					return fmt.Errorf("failed to analyze project: %w", err)
@@ -224,7 +226,7 @@ func writeDepsFile(filename string, patches []pkg.Patch) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filename, data, 0644)
+	return os.WriteFile(filename, data, 0600)
 }
 
 func writePropertiesFile(filename string, properties map[string]string) error {
@@ -262,5 +264,5 @@ func writePropertiesFile(filename string, properties map[string]string) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filename, data, 0644)
+	return os.WriteFile(filename, data, 0600)
 }

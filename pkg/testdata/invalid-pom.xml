@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <setting name="foo">bar</setting>
+    <option enabled="true">
+        <value>This is not a valid Maven POM file</value>
+    </option>
+    <items>
+        <item>one</item>
+        <item>two</item>
+    </items>
+</configuration>

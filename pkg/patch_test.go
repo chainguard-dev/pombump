@@ -304,6 +304,75 @@ func TestParsePatches(t *testing.T) {
 	}
 }
 
+func TestAlternativeFileNames(t *testing.T) {
+	testCases := []struct {
+		name    string
+		file    string
+		patches []Patch
+		wantErr bool
+	}{{
+		name: "valid POM with non-standard name (build.xml)",
+		file: "testdata/build.xml",
+		patches: []Patch{{
+			GroupID:    "com.fasterxml.jackson.core",
+			ArtifactID: "jackson-databind",
+			Version:    "2.15.0",
+			Scope:      "import",
+			Type:       "jar",
+		}},
+		wantErr: false,
+	}, {
+		name:    "invalid XML content",
+		file:    "testdata/invalid-pom.xml",
+		patches: []Patch{},
+		wantErr: true,
+	}, {
+		name:    "non-existent file",
+		file:    "testdata/does-not-exist.xml",
+		patches: []Patch{},
+		wantErr: true,
+	}}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			parsedPom, err := gopom.Parse(tc.file)
+			if tc.wantErr {
+				if err == nil {
+					t.Errorf("%s: expected error but got none", tc.name)
+				}
+				return
+			}
+			if err != nil {
+				t.Errorf("%s: unexpected error: %v", tc.name, err)
+				return
+			}
+
+			// If we successfully parsed, try to patch it
+			if len(tc.patches) > 0 {
+				patchedPom, err := PatchProject(context.Background(), parsedPom, tc.patches, nil)
+				if err != nil {
+					t.Errorf("%s: failed to patch: %v", tc.name, err)
+					return
+				}
+
+				// Verify the patch was applied
+				if patchedPom.Dependencies != nil {
+					for _, dep := range *patchedPom.Dependencies {
+						for _, patch := range tc.patches {
+							if dep.GroupID == patch.GroupID && dep.ArtifactID == patch.ArtifactID {
+								if dep.Version != patch.Version {
+									t.Errorf("%s: patch not applied correctly. Got version %s, want %s",
+										tc.name, dep.Version, patch.Version)
+								}
+							}
+						}
+					}
+				}
+			}
+		})
+	}
+}
+
 func TestParseProperties(t *testing.T) {
 	testCases := []struct {
 		name    string

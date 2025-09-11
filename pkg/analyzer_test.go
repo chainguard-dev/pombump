@@ -303,3 +303,68 @@ func TestGetAffectedDependencies(t *testing.T) {
 	affectedNone := result.GetAffectedDependencies("non.existent")
 	assert.Len(t, affectedNone, 0)
 }
+
+func TestAnalyzeProjectWithBOMs(t *testing.T) {
+	ctx := context.Background()
+
+	project := &gopom.Project{
+		DependencyManagement: &gopom.DependencyManagement{
+			Dependencies: &[]gopom.Dependency{
+				{
+					GroupID:    "io.netty",
+					ArtifactID: "netty-bom",
+					Version:    "4.1.94.Final",
+					Type:       "pom",
+					Scope:      "import",
+				},
+				{
+					GroupID:    "org.springframework",
+					ArtifactID: "spring-framework-bom",
+					Version:    "5.3.21",
+					Type:       "pom",
+					Scope:      "import",
+				},
+				{
+					GroupID:    "io.netty",
+					ArtifactID: "netty-handler",
+					Version:    "4.1.94.Final",
+				},
+			},
+		},
+		Dependencies: &[]gopom.Dependency{
+			{
+				GroupID:    "io.netty",
+				ArtifactID: "netty-codec",
+				Version:    "4.1.94.Final",
+			},
+		},
+	}
+
+	result, err := AnalyzeProject(ctx, project)
+	require.NoError(t, err)
+
+	// Should detect 2 BOMs
+	assert.Len(t, result.BOMs, 2)
+
+	// Should have 2 dependencies (netty-handler from dependencyManagement, netty-codec from dependencies)
+	assert.Len(t, result.Dependencies, 2)
+
+	// Verify BOM info
+	foundNettyBom := false
+	foundSpringBom := false
+	for _, bom := range result.BOMs {
+		if bom.GroupID == "io.netty" && bom.ArtifactID == "netty-bom" {
+			foundNettyBom = true
+			assert.Equal(t, "4.1.94.Final", bom.Version)
+			assert.Equal(t, "pom", bom.Type)
+			assert.Equal(t, "import", bom.Scope)
+			assert.True(t, bom.IsBOM())
+		}
+		if bom.GroupID == "org.springframework" && bom.ArtifactID == "spring-framework-bom" {
+			foundSpringBom = true
+			assert.Equal(t, "5.3.21", bom.Version)
+		}
+	}
+	assert.True(t, foundNettyBom, "netty BOM not found")
+	assert.True(t, foundSpringBom, "spring BOM not found")
+}
