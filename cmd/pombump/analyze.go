@@ -3,6 +3,7 @@ package pombump
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/chainguard-dev/gopom"
 	"github.com/chainguard-dev/pombump/pkg"
@@ -21,6 +22,7 @@ type analyzeCLIFlags struct {
 
 var analyzeFlags analyzeCLIFlags
 
+// AnalyzeCmd creates the analyze subcommand for analyzing POM files.
 func AnalyzeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "analyze <pom-file>",
@@ -50,7 +52,7 @@ Examples:
 			// Analyze the project (with property search if requested)
 			var analysis *pkg.AnalysisResult
 			var err error
-			
+
 			if analyzeFlags.searchProperties {
 				// Use enhanced analysis that searches for properties
 				analysis, err = pkg.AnalyzeProjectPath(cmd.Context(), args[0])
@@ -63,7 +65,7 @@ Examples:
 				if err != nil {
 					return fmt.Errorf("failed to parse POM file: %w", err)
 				}
-				
+
 				analysis, err = pkg.AnalyzeProject(cmd.Context(), parsedPom)
 				if err != nil {
 					return fmt.Errorf("failed to analyze project: %w", err)
@@ -112,7 +114,7 @@ Examples:
 	flagSet := cmd.Flags()
 	flagSet.StringVar(&analyzeFlags.patches, "patches", "", "Space-separated list of patches to analyze (groupID@artifactID@version)")
 	flagSet.StringVar(&analyzeFlags.patchFile, "patch-file", "", "File containing patches to analyze")
-	flagSet.StringVar(&analyzeFlags.outputFormat, "output", "human", "Output format: human or yaml")
+	flagSet.StringVar(&analyzeFlags.outputFormat, "output", "text", "Output format: text or yaml")
 	flagSet.StringVar(&analyzeFlags.outputDeps, "output-deps", "", "Write recommended dependency patches to this file")
 	flagSet.StringVar(&analyzeFlags.outputProperties, "output-properties", "", "Write recommended property patches to this file")
 	flagSet.BoolVar(&analyzeFlags.searchProperties, "search-properties", false, "Search for properties in nearby POM files")
@@ -191,6 +193,7 @@ func outputYAML(directPatches []pkg.Patch, propertyPatches map[string]string) {
 }
 
 func writeDepsFile(filename string, patches []pkg.Patch) error {
+	filename = filepath.Clean(filename)
 	// Read existing file if it exists
 	var existingList pkg.PatchList
 	if data, err := os.ReadFile(filename); err == nil {
@@ -224,13 +227,13 @@ func writeDepsFile(filename string, patches []pkg.Patch) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filename, data, 0644)
+	return os.WriteFile(filename, data, 0600)
 }
 
 func writePropertiesFile(filename string, properties map[string]string) error {
 	// Read existing file if it exists
 	var existingList pkg.PropertyList
-	if data, err := os.ReadFile(filename); err == nil {
+	if data, err := os.ReadFile(filepath.Clean(filename)); err == nil {
 		if err := yaml.Unmarshal(data, &existingList); err != nil {
 			// If unmarshal fails, start fresh
 			existingList = pkg.PropertyList{Properties: []pkg.PropertyPatch{}}
@@ -262,5 +265,5 @@ func writePropertiesFile(filename string, properties map[string]string) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filename, data, 0644)
+	return os.WriteFile(filename, data, 0600)
 }

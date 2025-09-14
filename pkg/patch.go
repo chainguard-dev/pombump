@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/chainguard-dev/clog"
@@ -20,14 +21,12 @@ import (
 </dependency>
 */
 
+// PatchList represents a collection of patches to apply to dependencies.
 type PatchList struct {
 	Patches []Patch `json:"patches"`
 }
 
-// Should this just be a gopom.Dependency??
-// Just start with this for now, change to it if need arises.
-// For now, this is easier to read since the upstream is
-// xml based, no other real reason.
+// Patch represents a dependency update to apply to a POM file.
 type Patch struct {
 	GroupID    string `json:"groupId" yaml:"groupId"`
 	ArtifactID string `json:"artifactId" yaml:"artifactId"`
@@ -36,18 +35,12 @@ type Patch struct {
 	Type       string `json:"type,omitempty" yaml:"type,omitempty"`
 }
 
-
+// PropertyList represents a collection of property patches to apply to POM files.
 type PropertyList struct {
 	Properties []PropertyPatch `json:"properties" yaml:"properties"`
 }
 
-/*
-<!-- dependency versions -->
-<slf4j.version>1.7.30</slf4j.version>
--    <logback-version>1.2.10</logback-version>
-+    <logback-version>1.2.13</logback-version>
-*/
-// These are just map[string]string and just a blind overwrite.
+// PropertyPatch represents a property update to apply to a POM file.
 type PropertyPatch struct {
 	Property string `json:"property" yaml:"property"`
 	Value    string `json:"value" yaml:"value"`
@@ -161,10 +154,11 @@ func PatchProject(ctx context.Context, project *gopom.Project, patches []Patch, 
 	return project, nil
 }
 
+// ParsePatches parses patches from a file or command-line flag string.
 func ParsePatches(ctx context.Context, patchFile, patchFlag string) ([]Patch, error) {
 	if patchFile != "" {
 		var patchList PatchList
-		file, err := os.Open(patchFile)
+		file, err := os.Open(filepath.Clean(patchFile))
 		if err != nil {
 			return nil, fmt.Errorf("failed reading file: %w", err)
 		}
@@ -212,11 +206,12 @@ func ParsePatches(ctx context.Context, patchFile, patchFlag string) ([]Patch, er
 	return patches, nil
 }
 
+// ParseProperties parses properties from a file or command-line flag string.
 func ParseProperties(ctx context.Context, propertyFile, propertiesFlag string) (map[string]string, error) {
 	propertiesPatches := map[string]string{}
 	if propertyFile != "" {
 		var propertyList PropertyList
-		file, err := os.Open(propertyFile)
+		file, err := os.Open(filepath.Clean(propertyFile))
 		if err != nil {
 			return nil, fmt.Errorf("failed reading file: %w", err)
 		}

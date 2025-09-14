@@ -8,7 +8,11 @@ import (
 	"github.com/chainguard-dev/gopom"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+// Removed unused constants
 
 func makeDep(groupID, artifactID, version string, opts ...string) gopom.Dependency {
 	dep := gopom.Dependency{GroupID: groupID, ArtifactID: artifactID, Version: version, Scope: defaultScope, Type: defaultType}
@@ -350,6 +354,281 @@ func TestParseProperties(t *testing.T) {
 			}
 			if diff := cmp.Diff(tc.want, got); diff != "" {
 				t.Errorf("%s: ParseProperties(%s, %s) (-got +want)\n%s", tc.name, tc.inFile, tc.inProps, diff)
+			}
+		})
+	}
+}
+
+func TestBOMPatching(t *testing.T) {
+	// Create standard Netty BOM project
+	project := &gopom.Project{
+		Properties: &gopom.Properties{
+			Entries: map[string]string{
+				"netty.version":  "4.1.100.Final",
+				"awssdk.version": "2.20.0",
+			},
+		},
+		DependencyManagement: &gopom.DependencyManagement{
+			Dependencies: &[]gopom.Dependency{
+				{
+					GroupID:    "io.netty",
+					ArtifactID: "netty-bom",
+					Version:    "${netty.version}",
+					Type:       "pom",
+					Scope:      "import",
+				},
+				{
+					GroupID:    "software.amazon.awssdk",
+					ArtifactID: "bom",
+					Version:    "${awssdk.version}",
+					Type:       "pom",
+					Scope:      "import",
+				},
+			},
+		},
+		Dependencies: &[]gopom.Dependency{
+			{
+				GroupID:    "io.netty",
+				ArtifactID: "netty-handler",
+			},
+			{
+				GroupID:    "software.amazon.awssdk",
+				ArtifactID: "s3",
+			},
+		},
+	}
+
+	tests := []struct {
+		name          string
+		properties    map[string]string
+		expectedProps map[string]string
+	}{
+		{
+			name: "update BOM via property",
+			properties: map[string]string{
+				"netty.version": "4.1.115.Final",
+			},
+			expectedProps: map[string]string{
+				"netty.version":  "4.1.115.Final",
+				"awssdk.version": "2.20.0",
+			},
+		},
+		{
+			name: "update multiple BOM properties",
+			properties: map[string]string{
+				"netty.version":  "4.1.115.Final",
+				"awssdk.version": "2.21.29",
+			},
+			expectedProps: map[string]string{
+				"netty.version":  "4.1.115.Final",
+				"awssdk.version": "2.21.29",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := PatchProject(context.Background(), project, nil, tt.properties)
+			if err != nil {
+				t.Fatalf("PatchProject failed: %v", err)
+			}
+
+			if result.Properties != nil {
+				for key, expectedValue := range tt.expectedProps {
+					actualValue := result.Properties.Entries[key]
+					if actualValue != expectedValue {
+						t.Errorf("Property %s: got %s, want %s", key, actualValue, expectedValue)
+					}
+				}
+			}
+		})
+	}
+}
+
+// TestRealConfigurationFiles removed - redundant with existing parse tests
+
+func TestRealConfigurationIntegration(t *testing.T) {
+	ctx := context.Background()
+
+	// Parse test files
+	project, err := gopom.Parse("testdata/neo4j-example.pom.xml")
+	require.NoError(t, err)
+
+	patches, err := ParsePatches(ctx, "testdata/pombump-deps.yaml", "")
+	require.NoError(t, err)
+
+	properties, err := ParseProperties(ctx, "testdata/pombump-properties.yaml", "")
+	require.NoError(t, err)
+
+	// Apply patches to project
+	result, err := PatchProject(ctx, project, patches, properties)
+	require.NoError(t, err)
+
+	// Verify that properties were updated correctly
+	if result.Properties != nil {
+		for key, expectedValue := range properties {
+			actualValue := result.Properties.Entries[key]
+			assert.Equal(t, expectedValue, actualValue, "Property %s should be updated to %s", key, expectedValue)
+		}
+	}
+
+	// Verify that patches were applied
+	if result.DependencyManagement != nil && result.DependencyManagement.Dependencies != nil {
+		foundPatches := 0
+		for _, dep := range *result.DependencyManagement.Dependencies {
+			for _, patch := range patches {
+				if dep.GroupID == patch.GroupID && dep.ArtifactID == patch.ArtifactID {
+					assert.Equal(t, patch.Version, dep.Version)
+					foundPatches++
+					break
+				}
+			}
+		}
+		assert.Greater(t, foundPatches, 0)
+	}
+
+	// Log basic summary
+	t.Logf("Applied %d patches, %d properties", len(patches), len(properties))
+}
+
+// TestComprehensiveRealDataWorkflow removed - redundant with TestRealConfigurationIntegration
+
+func TestPatchProjectEdgeCases(t *testing.T) {
+	ctx := context.Background()
+
+	tests := []struct {
+		name        string
+		project     *gopom.Project
+		patches     []Patch
+		properties  map[string]string
+		expectError bool
+	}{
+		{
+			name:        "nil project",
+			project:     nil,
+			patches:     []Patch{},
+			properties:  map[string]string{},
+			expectError: true,
+		},
+		{
+			name:    "empty project with patches",
+			project: &gopom.Project{},
+			patches: []Patch{
+				{
+					GroupID:    "com.example",
+					ArtifactID: "test",
+					Version:    "1.0.0",
+				},
+			},
+			properties:  map[string]string{},
+			expectError: false,
+		},
+		{
+			name: "project with nil dependency management dependencies",
+			project: &gopom.Project{
+				DependencyManagement: &gopom.DependencyManagement{
+					Dependencies: nil,
+				},
+			},
+			patches: []Patch{
+				{
+					GroupID:    "com.example",
+					ArtifactID: "test",
+					Version:    "1.0.0",
+				},
+			},
+			properties:  map[string]string{},
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := PatchProject(ctx, tt.project, tt.patches, tt.properties)
+			if tt.expectError {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+			}
+		})
+	}
+}
+
+func TestParsePatchesErrorCases(t *testing.T) {
+	ctx := context.Background()
+
+	tests := []struct {
+		name        string
+		file        string
+		deps        string
+		expectError bool
+	}{
+		{
+			name:        "nonexistent file",
+			file:        "/nonexistent/path/file.yaml",
+			deps:        "",
+			expectError: true,
+		},
+		{
+			name:        "invalid deps format - single component",
+			file:        "",
+			deps:        "invalid",
+			expectError: true,
+		},
+		{
+			name:        "invalid deps format - two components",
+			file:        "",
+			deps:        "group@artifact",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := ParsePatches(ctx, tt.file, tt.deps)
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+			}
+		})
+	}
+}
+
+func TestParsePropertiesErrorCases(t *testing.T) {
+	ctx := context.Background()
+
+	tests := []struct {
+		name        string
+		file        string
+		props       string
+		expectError bool
+	}{
+		{
+			name:        "nonexistent file",
+			file:        "/nonexistent/path/file.yaml",
+			props:       "",
+			expectError: true,
+		},
+		{
+			name:        "invalid props format - no separator",
+			file:        "",
+			props:       "invalid-property",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := ParseProperties(ctx, tt.file, tt.props)
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
 			}
 		})
 	}

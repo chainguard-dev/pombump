@@ -1,3 +1,4 @@
+// Package main provides the entry point for the pombump CLI tool.
 package main
 
 import (
@@ -14,6 +15,6 @@ func main() {
 	defer done()
 
 	if err := pombump.New().ExecuteContext(ctx); err != nil {
-		log.Fatalf("error during command execution: %v", err)
+		log.Fatalf("error during command execution: %v", err) //nolint:gocritic
 	}
 }
