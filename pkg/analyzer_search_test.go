@@ -44,11 +44,11 @@ func TestAnalyzeProjectPath(t *testing.T) {
         <module>module2</module>
     </modules>
 </project>`
-	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "pom.xml"), []byte(rootPom), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "pom.xml"), []byte(rootPom), 0600))
 
 	// Parent POM with properties
 	parentDir := filepath.Join(tmpDir, "parent")
-	require.NoError(t, os.MkdirAll(parentDir, 0755))
+	require.NoError(t, os.MkdirAll(parentDir, 0750))
 	parentPom := `<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0">
     <parent>
@@ -76,11 +76,11 @@ func TestAnalyzeProjectPath(t *testing.T) {
         </dependencies>
     </dependencyManagement>
 </project>`
-	require.NoError(t, os.WriteFile(filepath.Join(parentDir, "pom.xml"), []byte(parentPom), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(parentDir, "pom.xml"), []byte(parentPom), 0600))
 
 	// Module1 POM using properties
 	module1Dir := filepath.Join(tmpDir, "module1")
-	require.NoError(t, os.MkdirAll(module1Dir, 0755))
+	require.NoError(t, os.MkdirAll(module1Dir, 0750))
 	module1Pom := `<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0">
     <parent>
@@ -110,11 +110,11 @@ func TestAnalyzeProjectPath(t *testing.T) {
         </dependency>
     </dependencies>
 </project>`
-	require.NoError(t, os.WriteFile(filepath.Join(module1Dir, "pom.xml"), []byte(module1Pom), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(module1Dir, "pom.xml"), []byte(module1Pom), 0600))
 
 	// Module2 with submodule
 	module2Dir := filepath.Join(tmpDir, "module2", "submodule")
-	require.NoError(t, os.MkdirAll(module2Dir, 0755))
+	require.NoError(t, os.MkdirAll(module2Dir, 0750))
 	module2Pom := `<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0">
     <artifactId>submodule</artifactId>
@@ -132,7 +132,7 @@ func TestAnalyzeProjectPath(t *testing.T) {
         </dependency>
     </dependencies>
 </project>`
-	require.NoError(t, os.WriteFile(filepath.Join(module2Dir, "pom.xml"), []byte(module2Pom), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(module2Dir, "pom.xml"), []byte(module2Pom), 0600))
 
 	// Test analyzing module1 with property search
 	ctx := context.Background()
@@ -207,8 +207,8 @@ func TestFindProjectRoot(t *testing.T) {
 	submoduleDir := filepath.Join(moduleDir, "submodule")
 	otherDir := filepath.Join(tmpDir, "other")
 
-	require.NoError(t, os.MkdirAll(submoduleDir, 0755))
-	require.NoError(t, os.MkdirAll(otherDir, 0755))
+	require.NoError(t, os.MkdirAll(submoduleDir, 0750))
+	require.NoError(t, os.MkdirAll(otherDir, 0750))
 
 	// Create POM files
 	pomContent := `<?xml version="1.0" encoding="UTF-8"?>
@@ -217,9 +217,9 @@ func TestFindProjectRoot(t *testing.T) {
     <version>1.0.0</version>
 </project>`
 
-	require.NoError(t, os.WriteFile(filepath.Join(projectDir, "pom.xml"), []byte(pomContent), 0644))
-	require.NoError(t, os.WriteFile(filepath.Join(moduleDir, "pom.xml"), []byte(pomContent), 0644))
-	require.NoError(t, os.WriteFile(filepath.Join(submoduleDir, "pom.xml"), []byte(pomContent), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(projectDir, "pom.xml"), []byte(pomContent), 0600))
+	require.NoError(t, os.WriteFile(filepath.Join(moduleDir, "pom.xml"), []byte(pomContent), 0600))
+	require.NoError(t, os.WriteFile(filepath.Join(submoduleDir, "pom.xml"), []byte(pomContent), 0600))
 
 	tests := []struct {
 		name     string
@@ -261,7 +261,7 @@ func TestFindPropertyLocation(t *testing.T) {
 
 	// Create project structure
 	parentDir := filepath.Join(tmpDir, "parent")
-	require.NoError(t, os.MkdirAll(parentDir, 0755))
+	require.NoError(t, os.MkdirAll(parentDir, 0750))
 
 	// Root POM with some properties
 	rootPom := `<?xml version="1.0" encoding="UTF-8"?>
@@ -270,7 +270,7 @@ func TestFindPropertyLocation(t *testing.T) {
         <root.property>root-value</root.property>
     </properties>
 </project>`
-	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "pom.xml"), []byte(rootPom), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "pom.xml"), []byte(rootPom), 0600))
 
 	// Parent POM with different properties
 	parentPom := `<?xml version="1.0" encoding="UTF-8"?>
@@ -280,7 +280,7 @@ func TestFindPropertyLocation(t *testing.T) {
         <shared.property>shared-value</shared.property>
     </properties>
 </project>`
-	require.NoError(t, os.WriteFile(filepath.Join(parentDir, "pom.xml"), []byte(parentPom), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(parentDir, "pom.xml"), []byte(parentPom), 0600))
 
 	ctx := context.Background()
 
@@ -316,7 +316,7 @@ func TestSearchForPropertiesSkipsHiddenAndBuildDirs(t *testing.T) {
 	validDir := filepath.Join(tmpDir, "src")
 
 	for _, dir := range []string{hiddenDir, targetDir, nodeDir, validDir} {
-		require.NoError(t, os.MkdirAll(dir, 0755))
+		require.NoError(t, os.MkdirAll(dir, 0750))
 	}
 
 	// Create POMs in each directory
@@ -331,25 +331,25 @@ func TestSearchForPropertiesSkipsHiddenAndBuildDirs(t *testing.T) {
 	require.NoError(t, os.WriteFile(
 		filepath.Join(hiddenDir, "pom.xml"),
 		[]byte(fmt.Sprintf(pomContent, "hidden")),
-		0644))
+		0600))
 
 	// This should be skipped
 	require.NoError(t, os.WriteFile(
 		filepath.Join(targetDir, "pom.xml"),
 		[]byte(fmt.Sprintf(pomContent, "target")),
-		0644))
+		0600))
 
 	// This should be skipped
 	require.NoError(t, os.WriteFile(
 		filepath.Join(nodeDir, "pom.xml"),
 		[]byte(fmt.Sprintf(pomContent, "node")),
-		0644))
+		0600))
 
 	// This should be found
 	require.NoError(t, os.WriteFile(
 		filepath.Join(validDir, "pom.xml"),
 		[]byte(fmt.Sprintf(pomContent, "valid")),
-		0644))
+		0600))
 
 	ctx := context.Background()
 	props := searchForProperties(ctx, tmpDir, "")
@@ -397,7 +397,7 @@ func TestAnalyzeProjectPathWithNonPomXMLFiles(t *testing.T) {
 	}
 
 	for filename, content := range files {
-		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, filename), []byte(content), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, filename), []byte(content), 0600))
 	}
 
 	ctx := context.Background()

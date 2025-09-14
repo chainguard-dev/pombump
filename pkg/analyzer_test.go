@@ -548,7 +548,7 @@ func TestBOMRecommendationStrategy(t *testing.T) {
 
 func TestPropertyAnalysisWithRealData(t *testing.T) {
 	ctx := context.Background()
-	
+
 	// Load real properties
 	properties, err := ParseProperties(ctx, "testdata/pombump-properties.yaml", "")
 	require.NoError(t, err)
@@ -748,7 +748,7 @@ func TestAnalysisReport(t *testing.T) {
 		},
 		Properties: map[string]string{
 			"netty.version": "4.1.115.Final",
-			"unused.prop":  "1.0.0",
+			"unused.prop":   "1.0.0",
 		},
 		PropertyUsageCounts: map[string]int{
 			"netty.version": 1,
@@ -769,9 +769,9 @@ func TestAnalysisReport(t *testing.T) {
 
 func TestCalculateOptimalBOMVersion(t *testing.T) {
 	tests := []struct {
-		name      string
-		versions  map[string]string
-		expected  string
+		name     string
+		versions map[string]string
+		expected string
 	}{
 		{
 			name:     "single version",
@@ -1125,7 +1125,7 @@ func TestPatchStrategyBOMConflictsPaths(t *testing.T) {
 				Version:    "4.1.100.Final",
 			},
 			"io.netty:netty-codec": {
-				GroupID:    "io.netty", 
+				GroupID:    "io.netty",
 				ArtifactID: "netty-codec",
 				Version:    "4.1.100.Final",
 			},
@@ -1166,10 +1166,10 @@ func TestSearchForPropertiesErrorPaths(t *testing.T) {
 
 	// Test with a directory that contains files that cause parsing errors
 	tempDir := t.TempDir()
-	
+
 	// Create a file that looks like XML but isn't a valid POM
 	invalidXMLPath := filepath.Join(tempDir, "invalid.xml")
-	err := os.WriteFile(invalidXMLPath, []byte("<invalid>not a pom</invalid>"), 0644)
+	err := os.WriteFile(invalidXMLPath, []byte("<invalid>not a pom</invalid>"), 0600)
 	require.NoError(t, err)
 
 	properties := searchForProperties(ctx, tempDir, "")
@@ -1213,7 +1213,7 @@ func TestFindBOMForGroupEdgeCases(t *testing.T) {
 					},
 				},
 			},
-			groupID:  "io.netty",
+			groupID: "io.netty",
 			expected: &BOMInfo{
 				GroupID:    "com.example",
 				ArtifactID: "netty-bom",
@@ -1273,7 +1273,7 @@ func TestSearchForPropertiesProjectRootError(t *testing.T) {
 	// Test error handling in filepath operations
 	tempDir := t.TempDir()
 	invalidPath := filepath.Join(tempDir, "nonexistent")
-	
+
 	properties := searchForProperties(ctx, invalidPath, "")
 	assert.NotNil(t, properties)
 	assert.Equal(t, 0, len(properties)) // Should handle error gracefully

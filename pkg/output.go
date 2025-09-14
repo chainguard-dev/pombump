@@ -4,30 +4,26 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"github.com/ghodss/yaml"
-	"golang.org/x/term"
 )
 
 // OutputFormat represents the output format type
 type OutputFormat string
 
+// Output format constants for different output types.
 const (
-	FormatHuman OutputFormat = "human"
-	FormatJSON  OutputFormat = "json"
-	FormatYAML  OutputFormat = "yaml"
+	FormatText OutputFormat = "text" // Human-readable text format
+	FormatJSON OutputFormat = "json" // JSON format
+	FormatYAML OutputFormat = "yaml" // YAML format
 )
 
 // Write outputs the analysis in the specified format
 func (a *AnalysisOutput) Write(format string, w io.Writer) error {
-	// Auto-detect format if not specified
+	// Default to text format if not specified
 	if format == "" {
-		if f, ok := w.(*os.File); ok && term.IsTerminal(int(f.Fd())) {
-			return a.WriteOutput(w)
-		}
-		format = "json"
+		format = "text"
 	}
 
 	switch strings.ToLower(format) {
@@ -42,7 +38,7 @@ func (a *AnalysisOutput) Write(format string, w io.Writer) error {
 		}
 		_, err = w.Write(data)
 		return err
-	case "human", "":
+	case "text", "human", "":
 		return a.WriteOutput(w)
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
@@ -90,10 +86,10 @@ func (a *AnalysisOutput) WriteOutput(w io.Writer) error {
 	if len(a.Properties.Defined) > 0 {
 		props := "\nDefined Properties:\n"
 		for prop, value := range a.Properties.Defined {
-			if deps, ok := a.Properties.UsedBy[prop]; ok && len(deps) > 0 {
+			if deps, ok := a.Properties.UsedBy[prop]; ok {
 				props += fmt.Sprintf("  %s = %s (used by %d dependencies)\n", prop, value, len(deps))
 			} else {
-				props += fmt.Sprintf("  %s = %s\n", prop, value)
+				props += fmt.Sprintf("  %s = %s (used by 0 dependencies)\n", prop, value)
 			}
 		}
 		if _, err := fmt.Fprint(w, props); err != nil {

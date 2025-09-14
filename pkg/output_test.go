@@ -89,8 +89,8 @@ func TestAnalysisOutputWrite(t *testing.T) {
 		yamlValidation bool
 	}{
 		{
-			name:   "human readable format",
-			format: "human",
+			name:   "text readable format",
+			format: "text",
 			expectedSubstr: []string{
 				"POM Analysis: test-project/pom.xml",
 				"2024-01-15 14:30:45",
@@ -113,7 +113,7 @@ func TestAnalysisOutputWrite(t *testing.T) {
 				"Property: ${netty.version}",
 				"Recommended Patches:",
 				"Property Updates:",
-				"netty.version: (new) -> 4.1.115.Final",
+				"netty.version: 4.1.115.Final -> 4.1.115.Final",
 				"Direct Dependency Updates:",
 				"io.netty:netty-handler -> 4.1.115.Final",
 				"Warnings:",
@@ -161,7 +161,7 @@ func TestAnalysisOutputWrite(t *testing.T) {
 			},
 		},
 		{
-			name:   "empty format defaults to human",
+			name:   "empty format defaults to text",
 			format: "",
 			expectedSubstr: []string{
 				"POM Analysis: test-project/pom.xml",
@@ -508,7 +508,7 @@ func TestWriteOutputNilSections(t *testing.T) {
 	var buf bytes.Buffer
 	err := output.WriteOutput(&buf)
 	assert.NoError(t, err)
-	
+
 	result := buf.String()
 	assert.Contains(t, result, "test.xml")
 }
@@ -530,7 +530,7 @@ func TestAnalysisOutputPropertyWithEmptyUsedBy(t *testing.T) {
 	var buf bytes.Buffer
 	err := output.WriteOutput(&buf)
 	assert.NoError(t, err)
-	
+
 	result := buf.String()
 	assert.Contains(t, result, "test.version = 1.0.0 (used by 0 dependencies)")
 }
@@ -555,7 +555,7 @@ func TestWriteOutputPropertyUsageEdgeCases(t *testing.T) {
 	var buf bytes.Buffer
 	err := output.WriteOutput(&buf)
 	assert.NoError(t, err)
-	
+
 	result := buf.String()
 	assert.Contains(t, result, "empty.version = 1.0.0 (used by 0 dependencies)")
 	assert.Contains(t, result, "nil.version = 2.0.0 (used by 0 dependencies)")

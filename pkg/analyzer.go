@@ -1,3 +1,4 @@
+// Package pkg provides core functionality for analyzing and patching Maven POM files.
 package pkg
 
 import (
@@ -314,9 +315,11 @@ func (result *AnalysisResult) AnalysisReport() string {
 	report.WriteString(fmt.Sprintf("Dependencies using properties: %d\n", countPropertiesUsage(result)))
 	report.WriteString(fmt.Sprintf("Total properties defined: %d\n\n", len(result.Properties)))
 
-	if len(result.PropertyUsageCounts) > 0 {
+	if len(result.PropertyUsageCounts) > 0 || len(result.Properties) > 0 {
 		report.WriteString("Property Usage:\n")
 		report.WriteString("---------------\n")
+		
+		// First, show all used properties (from PropertyUsageCounts)
 		for prop, count := range result.PropertyUsageCounts {
 			currentValue := result.Properties[prop]
 			if currentValue != "" {
@@ -325,6 +328,14 @@ func (result *AnalysisResult) AnalysisReport() string {
 				report.WriteString(fmt.Sprintf("  %s (used by %d dependencies) - NOT DEFINED\n", prop, count))
 			}
 		}
+		
+		// Then, show defined properties that are not used (not in PropertyUsageCounts)
+		for prop, value := range result.Properties {
+			if _, used := result.PropertyUsageCounts[prop]; !used {
+				report.WriteString(fmt.Sprintf("  %s = %s (used by 0 dependencies)\n", prop, value))
+			}
+		}
+		
 		report.WriteString("\n")
 	}
 

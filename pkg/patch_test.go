@@ -453,7 +453,7 @@ func TestRealConfigurationIntegration(t *testing.T) {
 	// Parse test files
 	project, err := gopom.Parse("testdata/neo4j-example.pom.xml")
 	require.NoError(t, err)
-	
+
 	patches, err := ParsePatches(ctx, "testdata/pombump-deps.yaml", "")
 	require.NoError(t, err)
 
@@ -495,7 +495,7 @@ func TestRealConfigurationIntegration(t *testing.T) {
 
 func TestPatchProjectEdgeCases(t *testing.T) {
 	ctx := context.Background()
-	
+
 	tests := []struct {
 		name        string
 		project     *gopom.Project
@@ -511,7 +511,7 @@ func TestPatchProjectEdgeCases(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name: "empty project with patches",
+			name:    "empty project with patches",
 			project: &gopom.Project{},
 			patches: []Patch{
 				{
@@ -558,7 +558,7 @@ func TestPatchProjectEdgeCases(t *testing.T) {
 
 func TestParsePatchesErrorCases(t *testing.T) {
 	ctx := context.Background()
-	
+
 	tests := []struct {
 		name        string
 		file        string
@@ -600,7 +600,7 @@ func TestParsePatchesErrorCases(t *testing.T) {
 
 func TestParsePropertiesErrorCases(t *testing.T) {
 	ctx := context.Background()
-	
+
 	tests := []struct {
 		name        string
 		file        string

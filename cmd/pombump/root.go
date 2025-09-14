@@ -1,3 +1,4 @@
+// Package pombump provides the CLI commands for the pombump tool.
 package pombump
 
 import (
@@ -22,6 +23,7 @@ type rootCLIFlags struct {
 
 var rootFlags rootCLIFlags
 
+// New creates the root pombump CLI command.
 func New() *cobra.Command {
 	var logPolicy []string
 	var level log.CharmLogLevel
@@ -30,7 +32,7 @@ func New() *cobra.Command {
 		Use:   "pombump <file-to-bump>",
 		Short: "pombump cli",
 		Args:  cobra.ExactArgs(1),
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
 			out, err := log.Writer(logPolicy)
 			if err != nil {
 				return fmt.Errorf("failed to create log writer: %w", err)

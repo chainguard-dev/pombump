@@ -7,7 +7,7 @@ import (
 // AnalysisOutput represents the complete output structure for both analyze and plan commands
 type AnalysisOutput struct {
 	// Metadata
-	POMFile   string    `json:"pom_file" yaml:"pom_file"`
+	POMFile   string    `json:"pomFile" yaml:"pomFile"`
 	Timestamp time.Time `json:"timestamp" yaml:"timestamp"`
 
 	// Analysis results
@@ -18,32 +18,32 @@ type AnalysisOutput struct {
 
 	// Patch recommendations
 	Patches         []Patch           `json:"patches,omitempty" yaml:"patches,omitempty"`
-	PropertyUpdates map[string]string `json:"property_updates,omitempty" yaml:"property_updates,omitempty"`
+	PropertyUpdates map[string]string `json:"propertyUpdates,omitempty" yaml:"propertyUpdates,omitempty"`
 
 	// Actions needed
 	Warnings  []string         `json:"warnings,omitempty" yaml:"warnings,omitempty"`
-	CannotFix []UnfixableIssue `json:"cannot_fix,omitempty" yaml:"cannot_fix,omitempty"`
+	CannotFix []UnfixableIssue `json:"cannotFix,omitempty" yaml:"cannotFix,omitempty"`
 }
 
 // DependencyAnalysis contains dependency statistics
 type DependencyAnalysis struct {
 	Total           int `json:"total" yaml:"total"`
 	Direct          int `json:"direct" yaml:"direct"`
-	UsingProperties int `json:"using_properties" yaml:"using_properties"`
-	FromBOMs        int `json:"from_boms" yaml:"from_boms"`
+	UsingProperties int `json:"usingProperties" yaml:"usingProperties"`
+	FromBOMs        int `json:"fromBOMs" yaml:"fromBOMs"`
 	Transitive      int `json:"transitive,omitempty" yaml:"transitive,omitempty"`
 }
 
 // PropertyAnalysis contains property information
 type PropertyAnalysis struct {
 	Defined map[string]string   `json:"defined" yaml:"defined"`
-	UsedBy  map[string][]string `json:"used_by,omitempty" yaml:"used_by,omitempty"`
+	UsedBy  map[string][]string `json:"usedBy,omitempty" yaml:"usedBy,omitempty"`
 }
 
 // BOMInfo represents an imported BOM
 type BOMInfo struct {
-	GroupID    string `json:"group_id" yaml:"group_id"`
-	ArtifactID string `json:"artifact_id" yaml:"artifact_id"`
+	GroupID    string `json:"groupId" yaml:"groupId"`
+	ArtifactID string `json:"artifactId" yaml:"artifactId"`
 	Version    string `json:"version" yaml:"version"`
 	Type       string `json:"type,omitempty" yaml:"type,omitempty"`
 	Scope      string `json:"scope,omitempty" yaml:"scope,omitempty"`
@@ -53,8 +53,8 @@ type BOMInfo struct {
 type Issue struct {
 	Type            string   `json:"type" yaml:"type"` // "direct", "transitive", "shaded", "property"
 	Dependency      string   `json:"dependency" yaml:"dependency"`
-	CurrentVersion  string   `json:"current_version" yaml:"current_version"`
-	RequiredVersion string   `json:"required_version,omitempty" yaml:"required_version,omitempty"`
+	CurrentVersion  string   `json:"currentVersion" yaml:"currentVersion"`
+	RequiredVersion string   `json:"requiredVersion,omitempty" yaml:"requiredVersion,omitempty"`
 	CVEs            []string `json:"cves,omitempty" yaml:"cves,omitempty"`
 	Path            []string `json:"path,omitempty" yaml:"path,omitempty"`         // For transitive dependencies
 	Property        string   `json:"property,omitempty" yaml:"property,omitempty"` // For property-based deps
@@ -77,8 +77,8 @@ type UnfixableIssue struct {
 
 // TransitiveDependency represents a transitive dependency
 type TransitiveDependency struct {
-	GroupID    string   `json:"group_id" yaml:"group_id"`
-	ArtifactID string   `json:"artifact_id" yaml:"artifact_id"`
+	GroupID    string   `json:"groupId" yaml:"groupId"`
+	ArtifactID string   `json:"artifactId" yaml:"artifactId"`
 	Version    string   `json:"version" yaml:"version"`
 	Path       []string `json:"path" yaml:"path"` // Path from root to this dependency
 	Depth      int      `json:"depth" yaml:"depth"`
