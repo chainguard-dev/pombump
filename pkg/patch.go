@@ -163,6 +163,11 @@ func PatchProject(ctx context.Context, project *gopom.Project, patches []Patch, 
 
 func ParsePatches(ctx context.Context, patchFile, patchFlag string) ([]Patch, error) {
 	if patchFile != "" {
+		// Validate file path
+		if err := ValidateFilePath(patchFile); err != nil {
+			return nil, fmt.Errorf("invalid patch file path: %w", err)
+		}
+		
 		var patchList PatchList
 		file, err := os.Open(patchFile)
 		if err != nil {
@@ -174,7 +179,10 @@ func ParsePatches(ctx context.Context, patchFile, patchFlag string) ([]Patch, er
 				clog.FromContext(ctx).Warnf("failed to close file: %v", err)
 			}
 		}()
-		byteValue, _ := io.ReadAll(file)
+		byteValue, err := io.ReadAll(file)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read file: %w", err)
+		}
 		if err := yaml.Unmarshal(byteValue, &patchList); err != nil {
 			return nil, err
 		}
@@ -184,6 +192,10 @@ func ParsePatches(ctx context.Context, patchFile, patchFlag string) ([]Patch, er
 			}
 			if patchList.Patches[i].Type == "" {
 				patchList.Patches[i].Type = defaultType
+			}
+			// Validate each patch
+			if err := ValidatePatch(patchList.Patches[i]); err != nil {
+				return nil, fmt.Errorf("invalid patch at index %d: %w", i, err)
 			}
 		}
 		return patchList.Patches, nil
@@ -207,7 +219,12 @@ func ParsePatches(ctx context.Context, patchFile, patchFlag string) ([]Patch, er
 		if len(parts) >= 5 {
 			depType = parts[4]
 		}
-		patches = append(patches, Patch{GroupID: parts[0], ArtifactID: parts[1], Version: parts[2], Scope: scope, Type: depType})
+		patch := Patch{GroupID: parts[0], ArtifactID: parts[1], Version: parts[2], Scope: scope, Type: depType}
+		// Validate the patch
+		if err := ValidatePatch(patch); err != nil {
+			return nil, fmt.Errorf("invalid patch for %s: %w", dep, err)
+		}
+		patches = append(patches, patch)
 	}
 	return patches, nil
 }
@@ -215,6 +232,11 @@ func ParsePatches(ctx context.Context, patchFile, patchFlag string) ([]Patch, er
 func ParseProperties(ctx context.Context, propertyFile, propertiesFlag string) (map[string]string, error) {
 	propertiesPatches := map[string]string{}
 	if propertyFile != "" {
+		// Validate file path
+		if err := ValidateFilePath(propertyFile); err != nil {
+			return nil, fmt.Errorf("invalid properties file path: %w", err)
+		}
+		
 		var propertyList PropertyList
 		file, err := os.Open(propertyFile)
 		if err != nil {
@@ -226,11 +248,18 @@ func ParseProperties(ctx context.Context, propertyFile, propertiesFlag string) (
 				clog.FromContext(ctx).Warnf("failed to close file: %v", err)
 			}
 		}()
-		byteValue, _ := io.ReadAll(file)
+		byteValue, err := io.ReadAll(file)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read file: %w", err)
+		}
 		if err := yaml.Unmarshal(byteValue, &propertyList); err != nil {
 			return nil, err
 		}
 		for _, v := range propertyList.Properties {
+			// Validate property
+			if err := ValidatePropertyPatch(v.Property, v.Value); err != nil {
+				return nil, fmt.Errorf("invalid property %s: %w", v.Property, err)
+			}
 			propertiesPatches[v.Property] = v.Value
 		}
 		return propertiesPatches, nil
@@ -244,6 +273,10 @@ func ParseProperties(ctx context.Context, propertyFile, propertiesFlag string) (
 		parts := strings.Split(prop, "@")
 		if len(parts) != 2 {
 			return nil, fmt.Errorf("invalid properties format. Each dependency should be in the format <property@value>. Usage: pombump --properties=\"<property@value> <property@value>\" ...\"")
+		}
+		// Validate property
+		if err := ValidatePropertyPatch(parts[0], parts[1]); err != nil {
+			return nil, fmt.Errorf("invalid property %s: %w", prop, err)
 		}
 		propertiesPatches[parts[0]] = parts[1]
 	}
