@@ -1,6 +1,7 @@
 package pombump
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -47,10 +48,14 @@ Examples:
   pombump analyze pom.xml --search-properties --patches "org.assertj@assertj-core@3.25.0"`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Validate output format
+			if err := validateOutputFormat(analyzeFlags.outputFormat); err != nil {
+				return err
+			}
 			// Analyze the project (with property search if requested)
 			var analysis *pkg.AnalysisResult
 			var err error
-			
+
 			if analyzeFlags.searchProperties {
 				// Use enhanced analysis that searches for properties
 				analysis, err = pkg.AnalyzeProjectPath(cmd.Context(), args[0])
@@ -63,7 +68,7 @@ Examples:
 				if err != nil {
 					return fmt.Errorf("failed to parse POM file: %w", err)
 				}
-				
+
 				analysis, err = pkg.AnalyzeProject(cmd.Context(), parsedPom)
 				if err != nil {
 					return fmt.Errorf("failed to analyze project: %w", err)
@@ -80,10 +85,8 @@ Examples:
 				directPatches, propertyPatches := pkg.PatchStrategy(cmd.Context(), analysis, patches)
 
 				// Output recommendations
-				if analyzeFlags.outputFormat == "yaml" {
-					outputYAML(directPatches, propertyPatches)
-				} else {
-					outputAnalysisReport(analysis, directPatches, propertyPatches)
+				if err := outputResults(analysis, directPatches, propertyPatches, analyzeFlags.outputFormat); err != nil {
+					return err
 				}
 
 				// Write files if requested
@@ -101,8 +104,10 @@ Examples:
 					fmt.Printf("Wrote %d properties to %s\n", len(propertyPatches), analyzeFlags.outputProperties)
 				}
 			} else {
-				// Just output the analysis report
-				fmt.Println(analysis.AnalysisReport())
+				// Just output the analysis report in requested format
+				if err := outputResults(analysis, nil, nil, analyzeFlags.outputFormat); err != nil {
+					return err
+				}
 			}
 
 			return nil
@@ -112,7 +117,7 @@ Examples:
 	flagSet := cmd.Flags()
 	flagSet.StringVar(&analyzeFlags.patches, "patches", "", "Space-separated list of patches to analyze (groupID@artifactID@version)")
 	flagSet.StringVar(&analyzeFlags.patchFile, "patch-file", "", "File containing patches to analyze")
-	flagSet.StringVar(&analyzeFlags.outputFormat, "output", "human", "Output format: human or yaml")
+	flagSet.StringVar(&analyzeFlags.outputFormat, "output", "text", "Output format: text, json, or yaml")
 	flagSet.StringVar(&analyzeFlags.outputDeps, "output-deps", "", "Write recommended dependency patches to this file")
 	flagSet.StringVar(&analyzeFlags.outputProperties, "output-properties", "", "Write recommended property patches to this file")
 	flagSet.BoolVar(&analyzeFlags.searchProperties, "search-properties", false, "Search for properties in nearby POM files")
@@ -168,27 +173,6 @@ func outputAnalysisReport(analysis *pkg.AnalysisResult, directPatches []pkg.Patc
 		len(propertyPatches), len(directPatches))
 }
 
-func outputYAML(directPatches []pkg.Patch, propertyPatches map[string]string) {
-	result := map[string]interface{}{}
-
-	if len(directPatches) > 0 {
-		result["patches"] = directPatches
-	}
-
-	if len(propertyPatches) > 0 {
-		props := []pkg.PropertyPatch{}
-		for k, v := range propertyPatches {
-			props = append(props, pkg.PropertyPatch{
-				Property: k,
-				Value:    v,
-			})
-		}
-		result["properties"] = props
-	}
-
-	output, _ := yaml.Marshal(result)
-	fmt.Println(string(output))
-}
 
 func writeDepsFile(filename string, patches []pkg.Patch) error {
 	// Read existing file if it exists
@@ -263,4 +247,53 @@ func writePropertiesFile(filename string, properties map[string]string) error {
 		return err
 	}
 	return os.WriteFile(filename, data, 0644)
+}
+
+// outputJSON outputs the analysis in JSON format
+func outputJSON(analysis *pkg.AnalysisResult, directPatches []pkg.Patch, propertyPatches map[string]string) error {
+	output := pkg.CreateAnalysisOutput(analysis, directPatches, propertyPatches)
+	jsonData, err := json.MarshalIndent(output, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal JSON: %w", err)
+	}
+	fmt.Println(string(jsonData))
+	return nil
+}
+
+// outputYAML outputs the analysis in YAML format
+func outputYAML(analysis *pkg.AnalysisResult, directPatches []pkg.Patch, propertyPatches map[string]string) error {
+	output := pkg.CreateAnalysisOutput(analysis, directPatches, propertyPatches)
+	yamlData, err := yaml.Marshal(output)
+	if err != nil {
+		return fmt.Errorf("failed to marshal YAML: %w", err)
+	}
+	fmt.Println(string(yamlData))
+	return nil
+}
+
+// validateOutputFormat validates the provided output format
+func validateOutputFormat(format string) error {
+	switch format {
+	case "text", "json", "yaml":
+		return nil
+	default:
+		return fmt.Errorf("unsupported output format '%s'. Supported formats: text, json, yaml", format)
+	}
+}
+
+// outputResults handles output formatting with consistent error handling
+func outputResults(analysis *pkg.AnalysisResult, directPatches []pkg.Patch, propertyPatches map[string]string, format string) error {
+	switch format {
+	case "json":
+		return outputJSON(analysis, directPatches, propertyPatches)
+	case "yaml":
+		return outputYAML(analysis, directPatches, propertyPatches)
+	case "text":
+		outputAnalysisReport(analysis, directPatches, propertyPatches)
+		return nil
+	default:
+		// Should not reach here due to validation, but keep for safety
+		outputAnalysisReport(analysis, directPatches, propertyPatches)
+		return nil
+	}
 }
