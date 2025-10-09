@@ -2,9 +2,11 @@ package pkg
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/chainguard-dev/gopom"
+	"github.com/ghodss/yaml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -302,4 +304,232 @@ func TestGetAffectedDependencies(t *testing.T) {
 
 	affectedNone := result.GetAffectedDependencies("non.existent")
 	assert.Len(t, affectedNone, 0)
+}
+
+func TestCreateAnalysisOutput(t *testing.T) {
+	analysis := &AnalysisResult{
+		Dependencies: map[string]*DependencyInfo{
+			"io.netty:netty-handler": {
+				GroupID:      "io.netty",
+				ArtifactID:   "netty-handler",
+				Version:      "${netty.version}",
+				UsesProperty: true,
+				PropertyName: "netty.version",
+			},
+			"junit:junit": {
+				GroupID:      "junit",
+				ArtifactID:   "junit",
+				Version:      "4.13.2",
+				UsesProperty: false,
+			},
+		},
+		PropertyUsageCounts: map[string]int{
+			"netty.version": 1,
+		},
+		Properties: map[string]string{
+			"netty.version": "4.1.94.Final",
+		},
+	}
+
+	directPatches := []Patch{
+		{
+			GroupID:    "junit",
+			ArtifactID: "junit",
+			Version:    "4.13.3",
+		},
+	}
+
+	propertyPatches := map[string]string{
+		"netty.version": "4.1.118.Final",
+	}
+
+	output := CreateAnalysisOutput(analysis, directPatches, propertyPatches)
+
+	// Verify the structure
+	assert.NotNil(t, output.Analysis)
+	assert.Equal(t, analysis, output.Analysis)
+	assert.Equal(t, directPatches, output.DirectPatches)
+	assert.Len(t, output.PropertyPatches, 1)
+	assert.Equal(t, "netty.version", output.PropertyPatches[0].Property)
+	assert.Equal(t, "4.1.118.Final", output.PropertyPatches[0].Value)
+
+	// Verify summary
+	assert.Equal(t, 2, output.Summary.TotalDependencies)
+	assert.Equal(t, 1, output.Summary.DependenciesUsingProps)
+	assert.Equal(t, 1, output.Summary.PropertiesDefined)
+	assert.Equal(t, 1, output.Summary.DirectPatchCount)
+	assert.Equal(t, 1, output.Summary.PropertyPatchCount)
+}
+
+func TestAnalysisOutput_ToJSON(t *testing.T) {
+	analysis := &AnalysisResult{
+		Dependencies: map[string]*DependencyInfo{
+			"junit:junit": {
+				GroupID:    "junit",
+				ArtifactID: "junit",
+				Version:    "4.13.2",
+			},
+		},
+		Properties: map[string]string{},
+	}
+
+	output := CreateAnalysisOutput(analysis, nil, nil)
+
+	jsonData, err := output.ToJSON()
+	require.NoError(t, err)
+	assert.NotEmpty(t, jsonData)
+
+	// Verify it's valid JSON by unmarshaling
+	var result map[string]interface{}
+	err = json.Unmarshal(jsonData, &result)
+	require.NoError(t, err)
+
+	// Check structure
+	assert.Contains(t, result, "analysis")
+	assert.Contains(t, result, "summary")
+}
+
+func TestAnalysisOutput_ToYAML(t *testing.T) {
+	analysis := &AnalysisResult{
+		Dependencies: map[string]*DependencyInfo{
+			"junit:junit": {
+				GroupID:    "junit",
+				ArtifactID: "junit",
+				Version:    "4.13.2",
+			},
+		},
+		Properties: map[string]string{},
+	}
+
+	output := CreateAnalysisOutput(analysis, nil, nil)
+
+	yamlData, err := output.ToYAML()
+	require.NoError(t, err)
+	assert.NotEmpty(t, yamlData)
+
+	// Verify it's valid YAML by unmarshaling
+	var result map[string]interface{}
+	err = yaml.Unmarshal(yamlData, &result)
+	require.NoError(t, err)
+
+	// Check structure
+	assert.Contains(t, result, "analysis")
+	assert.Contains(t, result, "summary")
+}
+
+func TestAnalysisOutput_ToJSONString(t *testing.T) {
+	analysis := &AnalysisResult{
+		Dependencies: map[string]*DependencyInfo{},
+		Properties:   map[string]string{},
+	}
+
+	output := CreateAnalysisOutput(analysis, nil, nil)
+
+	jsonString, err := output.ToJSONString()
+	require.NoError(t, err)
+	assert.NotEmpty(t, jsonString)
+
+	// Should be valid JSON string
+	var result map[string]interface{}
+	err = json.Unmarshal([]byte(jsonString), &result)
+	require.NoError(t, err)
+}
+
+func TestAnalysisOutput_ToYAMLString(t *testing.T) {
+	analysis := &AnalysisResult{
+		Dependencies: map[string]*DependencyInfo{},
+		Properties:   map[string]string{},
+	}
+
+	output := CreateAnalysisOutput(analysis, nil, nil)
+
+	yamlString, err := output.ToYAMLString()
+	require.NoError(t, err)
+	assert.NotEmpty(t, yamlString)
+
+	// Should be valid YAML string
+	var result map[string]interface{}
+	err = yaml.Unmarshal([]byte(yamlString), &result)
+	require.NoError(t, err)
+}
+
+func TestCreateAnalysisOutput_NilInput(t *testing.T) {
+	// Test with nil analysis - should not panic
+	output := CreateAnalysisOutput(nil, nil, nil)
+	assert.NotNil(t, output)
+	assert.Nil(t, output.Analysis)
+	assert.Empty(t, output.DirectPatches)
+	assert.Empty(t, output.PropertyPatches)
+	assert.Equal(t, 0, output.Summary.TotalDependencies)
+}
+
+func TestAnalysisOutput_ToJSON_Error(t *testing.T) {
+	// Create an output with data that could cause JSON marshaling issues
+	analysis := &AnalysisResult{
+		Dependencies: make(map[string]*DependencyInfo),
+		Properties:   make(map[string]string),
+	}
+
+	output := CreateAnalysisOutput(analysis, nil, nil)
+
+	// Normal case should work
+	jsonData, err := output.ToJSON()
+	require.NoError(t, err)
+	assert.NotEmpty(t, jsonData)
+
+	// String version should also work
+	jsonString, err := output.ToJSONString()
+	require.NoError(t, err)
+	assert.NotEmpty(t, jsonString)
+}
+
+func TestAnalysisOutput_ToYAML_Error(t *testing.T) {
+	// Create an output with data that could cause YAML marshaling issues
+	analysis := &AnalysisResult{
+		Dependencies: make(map[string]*DependencyInfo),
+		Properties:   make(map[string]string),
+	}
+
+	output := CreateAnalysisOutput(analysis, nil, nil)
+
+	// Normal case should work
+	yamlData, err := output.ToYAML()
+	require.NoError(t, err)
+	assert.NotEmpty(t, yamlData)
+
+	// String version should also work
+	yamlString, err := output.ToYAMLString()
+	require.NoError(t, err)
+	assert.NotEmpty(t, yamlString)
+}
+
+func TestAnalysisOutput_EmptyData(t *testing.T) {
+	// Test with completely empty analysis
+	analysis := &AnalysisResult{
+		Dependencies:        make(map[string]*DependencyInfo),
+		PropertyUsageCounts: make(map[string]int),
+		Properties:          make(map[string]string),
+	}
+
+	output := CreateAnalysisOutput(analysis, []Patch{}, map[string]string{})
+
+	// Verify structure
+	assert.NotNil(t, output.Analysis)
+	assert.Empty(t, output.DirectPatches)
+	assert.Empty(t, output.PropertyPatches)
+	assert.Equal(t, 0, output.Summary.TotalDependencies)
+	assert.Equal(t, 0, output.Summary.DependenciesUsingProps)
+	assert.Equal(t, 0, output.Summary.PropertiesDefined)
+	assert.Equal(t, 0, output.Summary.DirectPatchCount)
+	assert.Equal(t, 0, output.Summary.PropertyPatchCount)
+
+	// Test JSON serialization with empty data
+	jsonData, err := output.ToJSON()
+	require.NoError(t, err)
+	assert.Contains(t, string(jsonData), `"totalDependencies": 0`)
+
+	// Test YAML serialization with empty data
+	yamlData, err := output.ToYAML()
+	require.NoError(t, err)
+	assert.Contains(t, string(yamlData), "totalDependencies: 0")
 }

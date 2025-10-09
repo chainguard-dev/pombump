@@ -55,7 +55,7 @@ func TestLogLevelParsing(t *testing.T) {
 			defer slog.SetDefault(originalLogger)
 
 			cmd := New()
-			
+
 			// Parse flags manually to set up the test environment
 			if tt.logLevel != "" {
 				cmd.SetArgs([]string{"--log-level", tt.logLevel, "dummy.pom"})
@@ -95,7 +95,7 @@ func TestLogPolicyFileCreation(t *testing.T) {
 
 	cmd := New()
 	cmd.SetArgs([]string{"--log-policy", logFile, "--log-level", "info", "dummy.pom"})
-	
+
 	// Parse flags to set up the environment
 	err := cmd.ParseFlags([]string{"--log-policy", logFile, "--log-level", "info"})
 	if err != nil {
@@ -134,7 +134,7 @@ func TestLogPolicyInvalidPath(t *testing.T) {
 
 	cmd := New()
 	cmd.SetArgs([]string{"--log-policy", "/invalid/path/that/cannot/exist.log", "dummy.pom"})
-	
+
 	// Parse flags
 	err := cmd.ParseFlags([]string{"--log-policy", "/invalid/path/that/cannot/exist.log"})
 	if err != nil {
@@ -154,7 +154,7 @@ func TestLogPolicyInvalidPath(t *testing.T) {
 }
 
 func TestLogPolicyMultiplePolicies(t *testing.T) {
-	// Store original logger to restore after test  
+	// Store original logger to restore after test
 	originalLogger := slog.Default()
 	defer slog.SetDefault(originalLogger)
 
@@ -163,14 +163,14 @@ func TestLogPolicyMultiplePolicies(t *testing.T) {
 
 	cmd := New()
 	cmd.SetArgs([]string{"--log-policy", "builtin:stderr", "--log-policy", logFile, "dummy.pom"})
-	
+
 	// Parse flags
 	err := cmd.ParseFlags([]string{"--log-policy", "builtin:stderr", "--log-policy", logFile})
 	if err != nil {
 		t.Fatalf("Failed to parse flags: %v", err)
 	}
 
-	// Run PersistentPreRunE 
+	// Run PersistentPreRunE
 	err = cmd.PersistentPreRunE(cmd, []string{"dummy.pom"})
 	if err != nil {
 		t.Fatalf("PersistentPreRunE failed: %v", err)
@@ -184,7 +184,7 @@ func TestLogPolicyMultiplePolicies(t *testing.T) {
 	// Test logging to the file
 	slog.Info("multi policy test")
 
-	// Read file contents  
+	// Read file contents
 	content, err := os.ReadFile(logFile)
 	if err != nil {
 		t.Fatalf("Failed to read log file: %v", err)
@@ -263,7 +263,7 @@ func TestLoggerIntegration(t *testing.T) {
 
 	cmd := New()
 	cmd.SetArgs([]string{"--log-policy", logFile, "--log-level", "debug", "dummy.pom"})
-	
+
 	// Parse flags
 	err := cmd.ParseFlags([]string{"--log-policy", logFile, "--log-level", "debug"})
 	if err != nil {
@@ -278,7 +278,7 @@ func TestLoggerIntegration(t *testing.T) {
 
 	// Test different log levels
 	slog.Debug("debug message")
-	slog.Info("info message") 
+	slog.Info("info message")
 	slog.Warn("warn message")
 	slog.Error("error message")
 
@@ -289,7 +289,7 @@ func TestLoggerIntegration(t *testing.T) {
 	}
 
 	contentStr := string(content)
-	
+
 	// With debug level, all messages should appear
 	messages := []string{"debug message", "info message", "warn message", "error message"}
 	for _, msg := range messages {
@@ -313,10 +313,10 @@ func TestMainCommandExecution(t *testing.T) {
 	defer slog.SetDefault(originalLogger)
 
 	cmd := New()
-	
+
 	// Test successful execution with dependencies flag
 	cmd.SetArgs([]string{"../../testdata/simple.pom.xml", "--dependencies", "junit@junit@4.13.2"})
-	
+
 	err := cmd.Execute()
 	if err != nil {
 		t.Fatalf("Command execution failed: %v", err)
@@ -325,15 +325,15 @@ func TestMainCommandExecution(t *testing.T) {
 
 func TestMainCommandValidation(t *testing.T) {
 	cmd := New()
-	
+
 	// Test validation - no flags provided
 	cmd.SetArgs([]string{"../../testdata/simple.pom.xml"})
-	
+
 	err := cmd.Execute()
 	if err == nil {
 		t.Error("Expected error for missing dependencies/properties flags but got none")
 	}
-	
+
 	if !strings.Contains(err.Error(), "no dependencies or properties provides") {
 		t.Errorf("Expected validation error message but got: %v", err)
 	}
@@ -341,15 +341,15 @@ func TestMainCommandValidation(t *testing.T) {
 
 func TestMainCommandMutuallyExclusive(t *testing.T) {
 	cmd := New()
-	
+
 	// Test mutually exclusive flags - both dependencies and patch-file
 	cmd.SetArgs([]string{"../../testdata/simple.pom.xml", "--dependencies", "test@test@1.0", "--patch-file", "patches.yaml"})
-	
+
 	err := cmd.Execute()
 	if err == nil {
 		t.Error("Expected error for mutually exclusive flags but got none")
 	}
-	
+
 	if !strings.Contains(err.Error(), "use either --dependencies or --patch-file") {
 		t.Errorf("Expected mutually exclusive error message but got: %v", err)
 	}
@@ -357,10 +357,10 @@ func TestMainCommandMutuallyExclusive(t *testing.T) {
 
 func TestMainCommandInvalidFile(t *testing.T) {
 	cmd := New()
-	
+
 	// Test with non-existent POM file
 	cmd.SetArgs([]string{"nonexistent.pom", "--dependencies", "test@test@1.0"})
-	
+
 	err := cmd.Execute()
 	if err == nil {
 		t.Error("Expected error for non-existent file but got none")
@@ -373,10 +373,10 @@ func TestMainCommandWithProperties(t *testing.T) {
 	defer slog.SetDefault(originalLogger)
 
 	cmd := New()
-	
+
 	// Test successful execution with properties flag
 	cmd.SetArgs([]string{"../../testdata/complex.pom.xml", "--properties", "junit.version@4.13.2"})
-	
+
 	err := cmd.Execute()
 	if err != nil {
 		t.Fatalf("Command execution with properties failed: %v", err)
@@ -394,7 +394,7 @@ func TestMainCommandWithPropertiesFile(t *testing.T) {
 	propsContent := `properties:
   - property: junit.version
     value: 4.13.2`
-	
+
 	err := os.WriteFile(propsFile, []byte(propsContent), 0644)
 	if err != nil {
 		t.Fatalf("Failed to create test properties file: %v", err)
@@ -402,7 +402,7 @@ func TestMainCommandWithPropertiesFile(t *testing.T) {
 
 	cmd := New()
 	cmd.SetArgs([]string{"../../testdata/complex.pom.xml", "--properties-file", propsFile})
-	
+
 	err = cmd.Execute()
 	if err != nil {
 		t.Fatalf("Command execution with properties file failed: %v", err)
@@ -411,15 +411,15 @@ func TestMainCommandWithPropertiesFile(t *testing.T) {
 
 func TestMainCommandMutuallyExclusiveProperties(t *testing.T) {
 	cmd := New()
-	
+
 	// Test mutually exclusive flags - both properties and properties-file
 	cmd.SetArgs([]string{"../../testdata/simple.pom.xml", "--properties", "test@1.0", "--properties-file", "props.yaml"})
-	
+
 	err := cmd.Execute()
 	if err == nil {
 		t.Error("Expected error for mutually exclusive properties flags but got none")
 	}
-	
+
 	if !strings.Contains(err.Error(), "use either --properties or --properties-file") {
 		t.Errorf("Expected mutually exclusive properties error message but got: %v", err)
 	}

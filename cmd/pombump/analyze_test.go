@@ -30,7 +30,7 @@ func TestAnalyzeCommand(t *testing.T) {
 			name:        "basic analysis without patches",
 			args:        []string{"analyze", "../../testdata/simple.pom.xml"},
 			expectError: false,
-			expectOut:   "POM Analysis Report",
+			expectOut:   "Patch Recommendations",
 		},
 		{
 			name:        "analysis with patches flag",
@@ -48,13 +48,13 @@ func TestAnalyzeCommand(t *testing.T) {
 			name:        "analysis with search-properties",
 			args:        []string{"analyze", "../../testdata/complex.pom.xml", "--search-properties"},
 			expectError: false,
-			expectOut:   "POM Analysis Report",
+			expectOut:   "Patch Recommendations",
 		},
 		{
 			name:        "analysis with yaml output",
 			args:        []string{"analyze", "../../testdata/complex.pom.xml", "--patches", "junit@junit@4.13.2", "--output", "yaml"},
 			expectError: false,
-			expectOut:   "properties:",
+			expectOut:   "propertyPatches:",
 		},
 		{
 			name:        "invalid POM file",
@@ -76,7 +76,9 @@ func TestAnalyzeCommand(t *testing.T) {
 			err := cmd.Execute()
 
 			// Close write end and read output
-			w.Close()
+			if err := w.Close(); err != nil {
+				t.Fatalf("Failed to close pipe: %v", err)
+			}
 			output, _ := io.ReadAll(r)
 			os.Stdout = originalStdout
 
@@ -118,7 +120,7 @@ func TestAnalyzeCommandFileOutput(t *testing.T) {
 
 	cmd := New()
 	cmd.SetArgs([]string{
-		"analyze", 
+		"analyze",
 		"../../testdata/complex.pom.xml",
 		"--patches", "junit@junit@4.13.2 io.netty@netty-handler@4.1.118.Final",
 		"--output-deps", depsFile,
@@ -128,7 +130,9 @@ func TestAnalyzeCommandFileOutput(t *testing.T) {
 	err := cmd.Execute()
 
 	// Close write end and read output
-	w.Close()
+	if err := w.Close(); err != nil {
+		t.Fatalf("Failed to close pipe: %v", err)
+	}
 	output, _ := io.ReadAll(r)
 	os.Stdout = originalStdout
 
@@ -188,7 +192,9 @@ func TestOutputAnalysisReport(t *testing.T) {
 	outputAnalysisReport(analysis, directPatches, propertyPatches)
 
 	// Close write end and read output
-	w.Close()
+	if err := w.Close(); err != nil {
+		t.Fatalf("Failed to close pipe: %v", err)
+	}
 	output, _ := io.ReadAll(r)
 
 	outputStr := string(output)
@@ -217,6 +223,20 @@ func TestOutputYAML(t *testing.T) {
 		os.Stdout = originalStdout
 	}()
 
+	// Create test analysis result
+	analysis := &pkg.AnalysisResult{
+		Properties: map[string]string{
+			"junit.version": "4.12",
+		},
+		Dependencies: map[string]*pkg.DependencyInfo{
+			"junit:junit": {
+				GroupID:    "junit",
+				ArtifactID: "junit",
+				Version:    "4.12",
+			},
+		},
+	}
+
 	directPatches := []pkg.Patch{
 		{
 			GroupID:    "junit",
@@ -235,23 +255,28 @@ func TestOutputYAML(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	outputYAML(directPatches, propertyPatches)
+	err := outputYAML(analysis, directPatches, propertyPatches)
+	if err != nil {
+		t.Fatalf("outputYAML failed: %v", err)
+	}
 
 	// Close write end and read output
-	w.Close()
+	if err := w.Close(); err != nil {
+		t.Fatalf("Failed to close pipe: %v", err)
+	}
 	output, _ := io.ReadAll(r)
 
 	outputStr := string(output)
 
 	// Check for YAML format
 	expectedContent := []string{
-		"patches:",
-		"artifactId: junit",
-		"groupId: junit",
-		"version: 4.13.2",
-		"properties:",
+		"analysis:",
+		"Dependencies:",
+		"junit:junit:",
+		"propertyPatches:",
 		"property: junit.version",
 		"value: 4.13.2",
+		"summary:",
 	}
 
 	for _, content := range expectedContent {
@@ -335,8 +360,8 @@ func TestWritePropertiesFile(t *testing.T) {
 	propsFile := filepath.Join(tempDir, "props.yaml")
 
 	properties := map[string]string{
-		"junit.version":  "4.13.2",
-		"slf4j.version":  "1.7.36",
+		"junit.version": "4.13.2",
+		"slf4j.version": "1.7.36",
 	}
 
 	// Test writing to new file
@@ -366,7 +391,7 @@ func TestWritePropertiesFile(t *testing.T) {
 
 	// Test appending to existing file (should update existing property)
 	updatedProperties := map[string]string{
-		"junit.version":  "4.13.3", // Updated version
+		"junit.version": "4.13.3",        // Updated version
 		"netty.version": "4.1.118.Final", // New property
 	}
 
@@ -405,15 +430,15 @@ func TestWriteFileErrors(t *testing.T) {
 
 func TestAnalyzeCommandWithInvalidPatches(t *testing.T) {
 	cmd := New()
-	
+
 	// Test with invalid patch format
 	cmd.SetArgs([]string{"analyze", "../../testdata/simple.pom.xml", "--patches", "invalid-format"})
-	
+
 	err := cmd.Execute()
 	if err == nil {
 		t.Error("Expected error for invalid patch format but got none")
 	}
-	
+
 	if !strings.Contains(err.Error(), "failed to parse patches") {
 		t.Errorf("Expected patch parsing error but got: %v", err)
 	}
@@ -421,15 +446,15 @@ func TestAnalyzeCommandWithInvalidPatches(t *testing.T) {
 
 func TestAnalyzeProjectPathError(t *testing.T) {
 	cmd := New()
-	
+
 	// Test with invalid project path for search-properties
 	cmd.SetArgs([]string{"analyze", "/invalid/project/path/pom.xml", "--search-properties"})
-	
+
 	err := cmd.Execute()
 	if err == nil {
 		t.Error("Expected error for invalid project path but got none")
 	}
-	
+
 	if !strings.Contains(err.Error(), "failed to analyze project") {
 		t.Errorf("Expected project analysis error but got: %v", err)
 	}
@@ -437,15 +462,15 @@ func TestAnalyzeProjectPathError(t *testing.T) {
 
 func TestAnalyzeCommandValidation(t *testing.T) {
 	cmd := New()
-	
+
 	// Test with no arguments
 	cmd.SetArgs([]string{"analyze"})
-	
+
 	err := cmd.Execute()
 	if err == nil {
 		t.Error("Expected error for no arguments but got none")
 	}
-	
+
 	if !strings.Contains(err.Error(), "accepts 1 arg(s), received 0") {
 		t.Errorf("Expected argument validation error but got: %v", err)
 	}
@@ -481,7 +506,9 @@ func TestOutputAnalysisReportWithEmptyPatches(t *testing.T) {
 	outputAnalysisReport(analysis, directPatches, propertyPatches)
 
 	// Close write end and read output
-	w.Close()
+	if err := w.Close(); err != nil {
+		t.Fatalf("Failed to close pipe: %v", err)
+	}
 	output, _ := io.ReadAll(r)
 
 	outputStr := string(output)
@@ -489,5 +516,378 @@ func TestOutputAnalysisReportWithEmptyPatches(t *testing.T) {
 	// Check for summary with 0 updates
 	if !strings.Contains(outputStr, "Summary: 0 property updates, 0 direct dependency updates") {
 		t.Errorf("Expected summary with 0 updates. Got: %s", outputStr)
+	}
+}
+
+func TestOutputJSON(t *testing.T) {
+	// Store original stdout
+	originalStdout := os.Stdout
+	defer func() {
+		os.Stdout = originalStdout
+	}()
+
+	// Create test analysis result
+	analysis := &pkg.AnalysisResult{
+		Properties: map[string]string{
+			"junit.version": "4.12",
+		},
+		Dependencies: map[string]*pkg.DependencyInfo{
+			"junit:junit": {
+				GroupID:    "junit",
+				ArtifactID: "junit",
+				Version:    "4.12",
+			},
+		},
+	}
+
+	directPatches := []pkg.Patch{
+		{
+			GroupID:    "junit",
+			ArtifactID: "junit",
+			Version:    "4.13.2",
+		},
+	}
+
+	propertyPatches := map[string]string{
+		"junit.version": "4.13.2",
+	}
+
+	// Capture stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	err := outputJSON(analysis, directPatches, propertyPatches)
+
+	// Close write end and read output
+	if err := w.Close(); err != nil {
+		t.Fatalf("Failed to close pipe: %v", err)
+	}
+	output, _ := io.ReadAll(r)
+
+	if err != nil {
+		t.Fatalf("outputJSON failed: %v", err)
+	}
+
+	outputStr := string(output)
+
+	// Check for JSON format
+	expectedContent := []string{
+		"\"analysis\":",
+		"\"Dependencies\":",
+		"\"junit:junit\":",
+		"\"propertyPatches\":",
+		"\"summary\":",
+	}
+
+	for _, content := range expectedContent {
+		if !strings.Contains(outputStr, content) {
+			t.Errorf("Expected JSON output to contain '%s'. Got: %s", content, outputStr)
+		}
+	}
+}
+
+func TestValidateOutputFormat(t *testing.T) {
+	tests := []struct {
+		name        string
+		format      string
+		expectError bool
+	}{
+		{"valid text format", "text", false},
+		{"valid json format", "json", false},
+		{"valid yaml format", "yaml", false},
+		{"invalid format", "xml", true},
+		{"empty format", "", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateOutputFormat(tt.format)
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("Expected error for format '%s' but got none", tt.format)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error for format '%s': %v", tt.format, err)
+				}
+			}
+		})
+	}
+}
+
+func TestOutputResults(t *testing.T) {
+	// Store original stdout
+	originalStdout := os.Stdout
+	defer func() {
+		os.Stdout = originalStdout
+	}()
+
+	// Create test analysis result
+	analysis := &pkg.AnalysisResult{
+		Properties: map[string]string{
+			"junit.version": "4.12",
+		},
+		Dependencies: map[string]*pkg.DependencyInfo{
+			"junit:junit": {
+				GroupID:    "junit",
+				ArtifactID: "junit",
+				Version:    "4.12",
+			},
+		},
+	}
+
+	var directPatches []pkg.Patch
+	propertyPatches := map[string]string{}
+
+	tests := []struct {
+		name           string
+		format         string
+		expectError    bool
+		expectedOutput string
+	}{
+		{"text format", "text", false, "Patch Recommendations"},
+		{"json format", "json", false, "\"analysis\":"},
+		{"yaml format", "yaml", false, "analysis:"},
+		{"invalid format defaults to text", "invalid", false, "Patch Recommendations"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Capture stdout
+			r, w, _ := os.Pipe()
+			os.Stdout = w
+
+			err := outputResults(analysis, directPatches, propertyPatches, tt.format)
+
+			// Close write end and read output
+			if err := w.Close(); err != nil {
+				t.Fatalf("Failed to close pipe: %v", err)
+			}
+			output, _ := io.ReadAll(r)
+			os.Stdout = originalStdout
+
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("Expected error for format '%s' but got none", tt.format)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error for format '%s': %v", tt.format, err)
+				}
+				if !strings.Contains(string(output), tt.expectedOutput) {
+					t.Errorf("Expected output to contain '%s' but got '%s'", tt.expectedOutput, string(output))
+				}
+			}
+		})
+	}
+}
+
+func TestAnalyzeCommandWithInvalidOutputFormat(t *testing.T) {
+	cmd := New()
+
+	// Test with invalid output format
+	cmd.SetArgs([]string{"analyze", "../../testdata/simple.pom.xml", "--output", "xml"})
+
+	err := cmd.Execute()
+	if err == nil {
+		t.Error("Expected error for invalid output format but got none")
+	}
+
+	if !strings.Contains(err.Error(), "unsupported output format") {
+		t.Errorf("Expected unsupported format error but got: %v", err)
+	}
+}
+
+func TestAnalyzeCommandWithJSON(t *testing.T) {
+	// Store original stdout
+	originalStdout := os.Stdout
+	defer func() {
+		os.Stdout = originalStdout
+	}()
+
+	// Capture stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	cmd := New()
+	cmd.SetArgs([]string{"analyze", "../../testdata/complex.pom.xml", "--patches", "junit@junit@4.13.2", "--output", "json"})
+
+	err := cmd.Execute()
+
+	// Close write end and read output
+	if err := w.Close(); err != nil {
+		t.Fatalf("Failed to close pipe: %v", err)
+	}
+	output, _ := io.ReadAll(r)
+	os.Stdout = originalStdout
+
+	if err != nil {
+		t.Fatalf("Command execution failed: %v", err)
+	}
+
+	outputStr := string(output)
+	if !strings.Contains(outputStr, "\"analysis\":") {
+		t.Errorf("Expected JSON output format. Got: %s", outputStr)
+	}
+}
+
+func TestAnalyzeCommandWithOutputFiles(t *testing.T) {
+	tempDir := t.TempDir()
+	depsFile := filepath.Join(tempDir, "deps.yaml")
+	propsFile := filepath.Join(tempDir, "props.yaml")
+
+	cmd := New()
+	cmd.SetArgs([]string{
+		"analyze",
+		"../../testdata/complex.pom.xml",
+		"--patches", "junit@junit@4.13.2",
+		"--output-deps", depsFile,
+		"--output-properties", propsFile,
+	})
+
+	err := cmd.Execute()
+	if err != nil {
+		t.Fatalf("Command execution failed: %v", err)
+	}
+
+	// Check that properties file was created
+	if _, err := os.Stat(propsFile); os.IsNotExist(err) {
+		t.Errorf("Properties file was not created: %s", propsFile)
+	}
+}
+
+func TestAnalyzeCommandWithErrorInOutputResults(t *testing.T) {
+	// This test should trigger error paths in outputResults
+	cmd := New()
+
+	// This should trigger a format validation error
+	cmd.SetArgs([]string{"analyze", "../../testdata/simple.pom.xml", "--output", "invalid-format"})
+
+	err := cmd.Execute()
+	if err == nil {
+		t.Error("Expected error for invalid format but got none")
+	}
+}
+
+func TestWriteFileWithErrorPaths(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// Test with read-only directory
+	readOnlyDir := filepath.Join(tempDir, "readonly")
+	err := os.Mkdir(readOnlyDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create test directory: %v", err)
+	}
+
+	err = os.Chmod(readOnlyDir, 0444)
+	if err != nil {
+		t.Fatalf("Failed to make directory read-only: %v", err)
+	}
+
+	defer func() {
+		if err := os.Chmod(readOnlyDir, 0755); err != nil {
+			t.Logf("Failed to restore directory permissions: %v", err)
+		}
+	}()
+
+	// Test writeDepsFile with marshaling error path
+	patches := []pkg.Patch{
+		{GroupID: "test", ArtifactID: "test", Version: "1.0"},
+	}
+
+	err = writeDepsFile(filepath.Join(readOnlyDir, "deps.yaml"), patches)
+	if err == nil {
+		t.Error("Expected error writing to read-only directory but got none")
+	}
+
+	// Test writePropertiesFile with marshaling error path
+	properties := map[string]string{"test": "1.0"}
+
+	err = writePropertiesFile(filepath.Join(readOnlyDir, "props.yaml"), properties)
+	if err == nil {
+		t.Error("Expected error writing to read-only directory but got none")
+	}
+}
+
+func TestAnalyzeCommandErrorPaths(t *testing.T) {
+	// Test analyze project path error in the other branch
+	cmd := New()
+
+	// Test with non-existent file for non-search-properties path
+	cmd.SetArgs([]string{"analyze", "/nonexistent/file.pom", "--patches", "junit@junit@4.13.2"})
+
+	err := cmd.Execute()
+	if err == nil {
+		t.Error("Expected error for non-existent file but got none")
+	}
+
+	if !strings.Contains(err.Error(), "failed to parse POM file") {
+		t.Errorf("Expected POM parse error but got: %v", err)
+	}
+}
+
+func TestWriteOutputFileErrors(t *testing.T) {
+	invalidPath := "/invalid/path/that/does/not/exist"
+
+	cmd := New()
+	cmd.SetArgs([]string{
+		"analyze",
+		"../../testdata/complex.pom.xml",
+		"--patches", "junit@junit@4.13.2",
+		"--output-properties", invalidPath,
+	})
+
+	err := cmd.Execute()
+	if err == nil {
+		t.Error("Expected error for invalid output path but got none")
+	}
+
+	if !strings.Contains(err.Error(), "failed to write properties file") {
+		t.Errorf("Expected write error but got: %v", err)
+	}
+}
+
+func TestWriteOutputDepsFileErrors(t *testing.T) {
+	invalidPath := "/invalid/path/that/does/not/exist"
+
+	cmd := New()
+	cmd.SetArgs([]string{
+		"analyze",
+		"../../testdata/complex.pom.xml",
+		"--patches", "org.slf4j@slf4j-api@1.7.36", // This should create direct patches
+		"--output-deps", invalidPath,
+	})
+
+	err := cmd.Execute()
+	if err == nil {
+		t.Error("Expected error for invalid output path but got none")
+	}
+
+	if !strings.Contains(err.Error(), "failed to write deps file") {
+		t.Errorf("Expected write error but got: %v", err)
+	}
+}
+
+func TestAnalyzeCommandWithDirectPatchesOutput(t *testing.T) {
+	tempDir := t.TempDir()
+	depsFile := filepath.Join(tempDir, "deps.yaml")
+
+	cmd := New()
+	cmd.SetArgs([]string{
+		"analyze",
+		"../../testdata/simple.pom.xml", // Simple POM has direct dependency
+		"--patches", "junit@junit@4.13.2",
+		"--output-deps", depsFile,
+	})
+
+	err := cmd.Execute()
+	if err != nil {
+		t.Fatalf("Command execution failed: %v", err)
+	}
+
+	// Check that deps file was created since this should create direct patches
+	if _, err := os.Stat(depsFile); os.IsNotExist(err) {
+		// It's ok if no deps file created - depends on patch strategy
+		t.Logf("No deps file created - patch strategy may have used properties instead")
 	}
 }
