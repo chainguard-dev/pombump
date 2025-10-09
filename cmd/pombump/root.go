@@ -3,8 +3,8 @@ package pombump
 import (
 	"fmt"
 	"log/slog"
+	"os"
 
-	"chainguard.dev/apko/pkg/log"
 	charmlog "github.com/charmbracelet/log"
 
 	"github.com/chainguard-dev/gopom"
@@ -24,18 +24,40 @@ var rootFlags rootCLIFlags
 
 func New() *cobra.Command {
 	var logPolicy []string
-	var level log.CharmLogLevel
+	var levelStr string
 
 	cmd := &cobra.Command{
 		Use:   "pombump <file-to-bump>",
 		Short: "pombump cli",
 		Args:  cobra.ExactArgs(1),
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			out, err := log.Writer(logPolicy)
-			if err != nil {
-				return fmt.Errorf("failed to create log writer: %w", err)
+			// Simple log writer setup (replace apko log.Writer)
+			out := os.Stderr
+			for _, policy := range logPolicy {
+				if policy != "builtin:stderr" {
+					f, err := os.OpenFile(policy, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+					if err != nil {
+						return fmt.Errorf("failed to create log writer: %w", err)
+					}
+					out = f
+					break
+				}
 			}
-			slog.SetDefault(slog.New(charmlog.NewWithOptions(out, charmlog.Options{ReportTimestamp: true, Level: charmlog.Level(level)})))
+			// Parse log level
+			var level charmlog.Level
+			switch levelStr {
+			case "debug":
+				level = charmlog.DebugLevel
+			case "info":
+				level = charmlog.InfoLevel
+			case "warn":
+				level = charmlog.WarnLevel
+			case "error":
+				level = charmlog.ErrorLevel
+			default:
+				level = charmlog.InfoLevel
+			}
+			slog.SetDefault(slog.New(charmlog.NewWithOptions(out, charmlog.Options{ReportTimestamp: true, Level: level})))
 
 			return nil
 		},
@@ -84,7 +106,7 @@ func New() *cobra.Command {
 		},
 	}
 	cmd.PersistentFlags().StringSliceVar(&logPolicy, "log-policy", []string{"builtin:stderr"}, "log policy (e.g. builtin:stderr, /tmp/log/foo)")
-	cmd.PersistentFlags().Var(&level, "log-level", "log level (e.g. debug, info, warn, error)")
+	cmd.PersistentFlags().StringVar(&levelStr, "log-level", "info", "log level (e.g. debug, info, warn, error)")
 
 	cmd.AddCommand(version.WithFont("starwars"))
 	cmd.AddCommand(AnalyzeCmd())
