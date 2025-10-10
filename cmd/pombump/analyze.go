@@ -173,7 +173,6 @@ func outputAnalysisReport(analysis *pkg.AnalysisResult, directPatches []pkg.Patc
 		len(propertyPatches), len(directPatches))
 }
 
-
 func writeDepsFile(filename string, patches []pkg.Patch) error {
 	// Read existing file if it exists
 	var existingList pkg.PatchList

@@ -469,14 +469,14 @@ func TestAnalysisOutput_ToJSON_Error(t *testing.T) {
 		Dependencies: make(map[string]*DependencyInfo),
 		Properties:   make(map[string]string),
 	}
-	
+
 	output := CreateAnalysisOutput(analysis, nil, nil)
-	
+
 	// Normal case should work
 	jsonData, err := output.ToJSON()
 	require.NoError(t, err)
 	assert.NotEmpty(t, jsonData)
-	
+
 	// String version should also work
 	jsonString, err := output.ToJSONString()
 	require.NoError(t, err)
@@ -489,14 +489,14 @@ func TestAnalysisOutput_ToYAML_Error(t *testing.T) {
 		Dependencies: make(map[string]*DependencyInfo),
 		Properties:   make(map[string]string),
 	}
-	
+
 	output := CreateAnalysisOutput(analysis, nil, nil)
-	
+
 	// Normal case should work
 	yamlData, err := output.ToYAML()
 	require.NoError(t, err)
 	assert.NotEmpty(t, yamlData)
-	
+
 	// String version should also work
 	yamlString, err := output.ToYAMLString()
 	require.NoError(t, err)
@@ -510,9 +510,9 @@ func TestAnalysisOutput_EmptyData(t *testing.T) {
 		PropertyUsageCounts: make(map[string]int),
 		Properties:          make(map[string]string),
 	}
-	
+
 	output := CreateAnalysisOutput(analysis, []Patch{}, map[string]string{})
-	
+
 	// Verify structure
 	assert.NotNil(t, output.Analysis)
 	assert.Empty(t, output.DirectPatches)
@@ -522,12 +522,12 @@ func TestAnalysisOutput_EmptyData(t *testing.T) {
 	assert.Equal(t, 0, output.Summary.PropertiesDefined)
 	assert.Equal(t, 0, output.Summary.DirectPatchCount)
 	assert.Equal(t, 0, output.Summary.PropertyPatchCount)
-	
+
 	// Test JSON serialization with empty data
 	jsonData, err := output.ToJSON()
 	require.NoError(t, err)
 	assert.Contains(t, string(jsonData), `"totalDependencies": 0`)
-	
+
 	// Test YAML serialization with empty data
 	yamlData, err := output.ToYAML()
 	require.NoError(t, err)
