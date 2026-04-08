@@ -8,7 +8,7 @@ require (
 	github.com/charmbracelet/log v0.4.2
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/go-cmp v0.7.0
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	sigs.k8s.io/release-utils v0.12.2
 )
