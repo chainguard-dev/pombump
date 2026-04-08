@@ -1,9 +1,9 @@
 module github.com/chainguard-dev/pombump
 
-go 1.24.0
+go 1.24.4
 
 require (
-	github.com/chainguard-dev/clog v1.7.0
+	github.com/chainguard-dev/clog v1.8.0
 	github.com/chainguard-dev/gopom v0.0.0-20250828200639-b1a78ac4b263
 	github.com/charmbracelet/log v0.4.2
 	github.com/ghodss/yaml v1.0.0
