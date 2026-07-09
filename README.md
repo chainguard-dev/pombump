@@ -1,5 +1,8 @@
 # pombump
 
+> **Deprecated:** pombump is no longer maintained. Use
+> [omnibump](https://github.com/chainguard-dev/omnibump) instead.
+
 Programmatically manipulate maven (pom.xml) dependencies.
 
 # Overview

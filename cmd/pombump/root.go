@@ -28,7 +28,7 @@ func New() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "pombump <file-to-bump>",
-		Short: "pombump cli",
+		Short: "pombump cli (deprecated, use omnibump instead)",
 		Args:  cobra.ExactArgs(1),
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			// Simple log writer setup (replace apko log.Writer)
@@ -58,6 +58,8 @@ func New() *cobra.Command {
 				level = charmlog.InfoLevel
 			}
 			slog.SetDefault(slog.New(charmlog.NewWithOptions(out, charmlog.Options{ReportTimestamp: true, Level: level})))
+
+			slog.Warn("pombump is deprecated and no longer maintained, use omnibump instead: https://github.com/chainguard-dev/omnibump")
 
 			return nil
 		},
